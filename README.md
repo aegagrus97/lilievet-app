@@ -43,10 +43,10 @@ Lo que ya protege esta webapp (código de este repositorio):
 - El service worker solo guarda archivos propios; nunca respuestas de Supabase.
 - Los mensajes de error que ve la persona son genéricos; no exponen detalles internos.
 
-Dos pendientes reales, fuera de lo que este repositorio puede arreglar por sí solo:
+Un pendiente real y una capa que vive fuera del navegador:
 
 1. **Las cabeceras de `_headers` no se están aplicando.** Mientras la app esté publicada solo en GitHub Pages (como dice el enlace arriba), ese archivo se ignora: no hay `Strict-Transport-Security`, `X-Content-Type-Options` ni protección real contra iframes (`frame-ancestors` no funciona en `<meta>`, así que hoy esa protección depende solo de que `js/guardia.js` pueda ejecutarse). Para que esas cabeceras se envíen de verdad hay que publicar en **Cloudflare Pages** o **Netlify** en vez de GitHub Pages.
-2. **La autorización real vive en Supabase, no en un repositorio.** Las funciones `rpc` que llama `js/api.js` (`crear_solicitud`, `admin_resumen`, `admin_decidir_mvz`, etc.) y sus políticas de RLS no están versionadas en ningún repositorio accesible aquí — el `supabase/schema.sql` del repo `lilieVET` es de una versión anterior de la app, con otros nombres de función (`reservar`, `cerrar_consulta`), y ya no coincide con lo que pide `js/api.js`. Sin esas migraciones en control de versiones no se puede revisar si cada función `admin_*` comprueba `es_admin()`, si `crear_solicitud` valida que el tutor solo pueda crear solicitudes a su propio nombre, etc. Recomendación: exportar las migraciones actuales de Supabase (Database → Migrations, o `supabase db dump`) a este repositorio o a uno dedicado, para que esa capa también se pueda auditar.
+2. **La autorización del servidor ya está versionada y revisada.** Las funciones de Supabase, sus permisos y las Edge Functions están copiadas en [`supabase/`](supabase/README.md), con el resultado de la revisión del 15 de noviembre de 2026 y cuatro pendientes menores. Si cambias algo en Supabase, actualiza esa carpeta en el mismo cambio.
 
 ## Ver el diseño sin conectar nada
 
