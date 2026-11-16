@@ -41,7 +41,7 @@ Se leyeron las 47 funciones de `public`, las 23 de `privado` y las 4 Edge Functi
 
 **Pendientes menores** (ninguno expone datos):
 
-1. `public.rls_auto_enable()` (función de Supabase, no de LilieVET) es ejecutable por `authenticated`. No hace nada al llamarla por la API, pero conviene quitarle el permiso: `revoke execute on function public.rls_auto_enable() from authenticated;`
+1. ~~`public.rls_auto_enable()` (función de Supabase, no de LilieVET) era ejecutable por `authenticated`.~~ **Resuelto el 16 nov 2026** con la migración `revocar_rls_auto_enable`. El disparador que activa RLS en tablas nuevas sigue funcionando.
 2. Protección contra contraseñas filtradas desactivada en Supabase Auth (Authentication → Sign In / Providers → Password). Puede requerir plan de pago.
 3. La extensión `pg_net` está instalada en `public`; Supabase recomienda otro esquema.
 4. Solo hay una tarea programada (`lilievet-plazos`). No hay ninguna que llame a `enviar-avisos` ni a `procesar-reembolsos`, así que los correos no salen solos y los reembolsos solo se envían desde el botón del Panel. Es un pendiente de operación, no de seguridad.

@@ -55,3 +55,6 @@ insert into app.parametros (clave, valor) values
   ('horas_anticipacion', '3'), ('dias_agenda', '30'), ('exigir_telefono_verificado', 'true'),
   ('version_terminos', '"2026-11"'), ('version_privacidad', '"2026-11"'), ('version_carta', '"2026-11"')
 on conflict (clave) do nothing;
+
+-- 2026-11-16 · migración revocar_rls_auto_enable: la función de Supabase que activa RLS no la llama nadie por la API
+revoke execute on function public.rls_auto_enable() from authenticated, anon, public;
