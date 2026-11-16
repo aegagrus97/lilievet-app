@@ -9,7 +9,7 @@ Es una **referencia para revisar y auditar**, no un instalador: la base real sig
 | Archivo | Contenido | Fidelidad |
 | --- | --- | --- |
 | `esquema/10_tablas.sql` | Las 16 tablas del esquema `app`, con restricciones e índices | Reconstruido desde el catálogo |
-| `esquema/20_privado_funciones.sql` | 23 funciones internas (`privado.*`) | Idéntico byte por byte (md5 verificado) |
+| `esquema/20_privado_funciones.sql` | 23 funciones internas (`privado.*`); la número 24, `llamar_funcion`, está en el archivo 60 | Idéntico byte por byte (md5 verificado) |
 | `esquema/30_public_admin.sql` | 15 funciones del Panel (`admin_*`) | Idéntico byte por byte |
 | `esquema/40_…` y `41_…` | Funciones que llama la app (tutor y médico) | Idéntico byte por byte |
 | `esquema/50_public_srv.sql` | 9 funciones solo para el servidor (`srv_*`) | Idéntico byte por byte |
@@ -44,4 +44,4 @@ Se leyeron las 47 funciones de `public`, las 23 de `privado` y las 4 Edge Functi
 1. ~~`public.rls_auto_enable()` (función de Supabase, no de LilieVET) era ejecutable por `authenticated`.~~ **Resuelto el 16 nov 2026** con la migración `revocar_rls_auto_enable`. El disparador que activa RLS en tablas nuevas sigue funcionando.
 2. Protección contra contraseñas filtradas desactivada en Supabase Auth (Authentication → Sign In / Providers → Password). Puede requerir plan de pago.
 3. La extensión `pg_net` está instalada en `public`; Supabase recomienda otro esquema.
-4. Solo hay una tarea programada (`lilievet-plazos`). No hay ninguna que llame a `enviar-avisos` ni a `procesar-reembolsos`, así que los correos no salen solos y los reembolsos solo se envían desde el botón del Panel. Es un pendiente de operación, no de seguridad.
+4. ~~No había tareas que llamaran a `enviar-avisos` ni a `procesar-reembolsos`.~~ **Armado el 16 nov 2026** (`lilievet-avisos` cada minuto, `lilievet-reembolsos` cada 15 minutos). Empiezan a funcionar cuando el secreto `CRON_SECRET` de las Edge Functions sea igual al secreto `cron_secret` de Vault; mientras no coincidan, las funciones responden 401 y no pasa nada.

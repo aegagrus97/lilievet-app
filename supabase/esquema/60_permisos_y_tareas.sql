@@ -58,3 +58,28 @@ on conflict (clave) do nothing;
 
 -- 2026-11-16 · migración revocar_rls_auto_enable: la función de Supabase que activa RLS no la llama nadie por la API
 revoke execute on function public.rls_auto_enable() from authenticated, anon, public;
+
+-- 2026-11-16 · migración tareas_avisos_y_reembolsos
+-- El secreto 'cron_secret' vive en Supabase Vault (se generó dentro de la base; no está en este repositorio)
+-- y debe ser igual al secreto CRON_SECRET de las Edge Functions. Si no existe, la función no llama a nada.
+create or replace function privado.llamar_funcion(p_slug text)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare v_secreto text;
+begin
+  if p_slug not in ('enviar-avisos', 'procesar-reembolsos') then return; end if;
+  select decrypted_secret into v_secreto from vault.decrypted_secrets where name = 'cron_secret';
+  if v_secreto is null or char_length(v_secreto) < 24 then return; end if;
+  perform net.http_post(
+    url := 'https://wqxirebttvrodhqddsag.supabase.co/functions/v1/' || p_slug,
+    body := '{}'::jsonb,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', v_secreto),
+    timeout_milliseconds := 20000);
+end $function$;
+revoke all on function privado.llamar_funcion(text) from public, anon, authenticated, service_role;
+
+select cron.schedule('lilievet-avisos', '* * * * *', $$select privado.llamar_funcion('enviar-avisos')$$);
+select cron.schedule('lilievet-reembolsos', '*/15 * * * *', $$select privado.llamar_funcion('procesar-reembolsos')$$);
