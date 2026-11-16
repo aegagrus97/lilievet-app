@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Política de seguridad de contenido: solo corre código de esta misma carpeta y solo se conecta a Supabase.
+       No hay scripts en línea ni de terceros. (frame-ancestors va en el archivo _headers: no funciona en <meta>.) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>LilieVET · Tu vet a domicilio</title>
+  <meta name="description" content="Agenda consultas veterinarias a domicilio para perros y gatos con médicos veterinarios independientes y con cédula verificada.">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E0B17" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Sistema de diseño LilieVET v3 (sin cambios) -->
+  <link rel="stylesheet" href="ds/tokens.css">
+  <link rel="stylesheet" href="ds/bundle.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="js/guardia.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <noscript>LilieVET necesita JavaScript activado.</noscript>
+
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/htm.umd.js"></script>
+  <script src="vendor/supabase.js"></script>
+  <script src="ds/bundle.js"></script>
+  <script src="config.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
