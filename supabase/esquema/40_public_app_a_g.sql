@@ -35,6 +35,7 @@ begin
   if not (p_alcaldia = any (privado.alcaldias())) or p_servicio not in ('consulta', 'vacunacion', 'desparasitacion') then
     perform privado.error('Elige una alcaldía y un servicio de la lista.');
   end if;
+  perform privado.limitar('ver_agenda', 240, interval '1 hour');
   select coalesce(jsonb_agg(jsonb_build_object('inicia_at', b.inicia, 'medicos', b.n) order by b.inicia), '[]'::jsonb) into v
   from (
     select c.inicia, count(*) as n

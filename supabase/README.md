@@ -45,3 +45,15 @@ Se leyeron las 47 funciones de `public`, las 23 de `privado` y las 4 Edge Functi
 2. Protección contra contraseñas filtradas desactivada en Supabase Auth (Authentication → Sign In / Providers → Password). Puede requerir plan de pago.
 3. La extensión `pg_net` está instalada en `public`; Supabase recomienda otro esquema.
 4. ~~No había tareas que llamaran a `enviar-avisos` ni a `procesar-reembolsos`.~~ **Armado el 16 nov 2026** (`lilievet-avisos` cada minuto, `lilievet-reembolsos` cada 15 minutos). Empiezan a funcionar cuando el secreto `CRON_SECRET` de las Edge Functions sea igual al secreto `cron_secret` de Vault; mientras no coincidan, las funciones responden 401 y no pasa nada.
+
+## Revisión "como atacante" (16 nov 2026)
+
+Corregido ese día:
+
+- `bloques_en_zona` y `medicos_en_bloque` ahora tienen tope de 240 consultas por hora por cuenta (migración `limite_consultas_agenda`), para que un script con sesión no pueda saturar la base.
+
+Pendientes que no se pueden cerrar desde el código (ver el README principal):
+
+- Proyecto anterior de Supabase `LilieVET-v3-2` sigue activo, con su clave en el repo público `lilieVET`.
+- La rama `main` no está protegida y de ella sale el código que corre en el navegador de cada persona.
+- Configuración de Supabase Auth por confirmar: CAPTCHA, largo mínimo de contraseña, confirmación de correo y límites de SMS.

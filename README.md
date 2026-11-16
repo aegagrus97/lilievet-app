@@ -48,6 +48,14 @@ Un pendiente real y una capa que vive fuera del navegador:
 1. **Las cabeceras de `_headers` no se están aplicando.** Mientras la app esté publicada solo en GitHub Pages (como dice el enlace arriba), ese archivo se ignora: no hay `Strict-Transport-Security`, `X-Content-Type-Options` ni protección real contra iframes (`frame-ancestors` no funciona en `<meta>`, así que hoy esa protección depende solo de que `js/guardia.js` pueda ejecutarse). Para que esas cabeceras se envíen de verdad hay que publicar en **Cloudflare Pages** o **Netlify** en vez de GitHub Pages.
 2. **La autorización del servidor ya está versionada y revisada.** Las funciones de Supabase, sus permisos y las Edge Functions están copiadas en [`supabase/`](supabase/README.md), con el resultado de la revisión del 15 de noviembre de 2026 y cuatro pendientes menores. Si cambias algo en Supabase, actualiza esa carpeta en el mismo cambio.
 
+### Pendientes de la revisión "como atacante" (16 nov 2026)
+
+Estos tres no se arreglan con código; se cierran en los paneles de Supabase y GitHub:
+
+1. **Retirar el proyecto anterior de Supabase (`LilieVET-v3-2`).** Sigue activo, su dirección y su clave están en el repositorio público `lilieVET`, guarda documentos de prueba y su panel de administración no pide doble factor. Si ya no se usa: pausarlo o borrarlo, y archivar ese repositorio y su página.
+2. **Proteger la cuenta de GitHub y la rama `main`.** Lo que hay en `main` es lo que corre en el navegador de cada persona: quien pueda escribir ahí puede robar sesiones. Activar verificación en dos pasos en la cuenta y una regla que impida forzar o borrar la rama.
+3. **Revisar Supabase Auth:** CAPTCHA en registro e inicio de sesión, contraseña mínima de 10 caracteres también en el servidor, confirmación de correo obligatoria, protección de contraseñas filtradas y límite de SMS por hora.
+
 ## Ver el diseño sin conectar nada
 
 `?demo=tutor`, `?demo=mvz`, `?demo=mvz-nuevo` o `?demo=admin` abren la app con datos de ejemplo que viven solo en la memoria del navegador.
