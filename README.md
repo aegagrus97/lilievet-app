@@ -52,7 +52,7 @@ Un pendiente real y una capa que vive fuera del navegador:
 
 Estos tres no se arreglan con código; se cierran en los paneles de Supabase y GitHub:
 
-1. **Retirar el proyecto anterior de Supabase (`LilieVET-v3-2`).** Sigue activo, su dirección y su clave están en el repositorio público `lilieVET`, guarda documentos de prueba y su panel de administración no pide doble factor. Si ya no se usa: pausarlo o borrarlo, y archivar ese repositorio y su página.
+1. **Proyecto anterior de Supabase (`LilieVET-v3-2`): pausado el 16 nov 2026.** Mientras esté pausado nadie puede entrar. Se puede restaurar desde el panel de Supabase; si se reactiva, vuelve a aplicar lo siguiente. Antes de pausarlo seguía activo, su dirección y su clave están en el repositorio público `lilieVET`, guarda documentos de prueba y su panel de administración no pide doble factor. Si ya no se usa: pausarlo o borrarlo, y archivar ese repositorio y su página.
 2. **Proteger la cuenta de GitHub y la rama `main`.** Lo que hay en `main` es lo que corre en el navegador de cada persona: quien pueda escribir ahí puede robar sesiones. Activar verificación en dos pasos en la cuenta y una regla que impida forzar o borrar la rama.
 3. **Revisar Supabase Auth:** CAPTCHA en registro e inicio de sesión, contraseña mínima de 10 caracteres también en el servidor, confirmación de correo obligatoria, protección de contraseñas filtradas y límite de SMS por hora.
 

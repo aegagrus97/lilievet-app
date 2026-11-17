@@ -54,6 +54,6 @@ Corregido ese día:
 
 Pendientes que no se pueden cerrar desde el código (ver el README principal):
 
-- Proyecto anterior de Supabase `LilieVET-v3-2` sigue activo, con su clave en el repo público `lilieVET`.
+- ~~Proyecto anterior de Supabase `LilieVET-v3-2` activo, con su clave en el repo público `lilieVET`.~~ **Pausado el 16 nov 2026.** Falta archivar ese repositorio y su página.
 - La rama `main` no está protegida y de ella sale el código que corre en el navegador de cada persona.
 - Configuración de Supabase Auth por confirmar: CAPTCHA, largo mínimo de contraseña, confirmación de correo y límites de SMS.
