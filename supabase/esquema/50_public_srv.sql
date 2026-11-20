@@ -173,3 +173,18 @@ CREATE OR REPLACE FUNCTION public.srv_tick()
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$ select privado.tick() $function$
+
+CREATE OR REPLACE FUNCTION public.srv_montos_pago(p_mp_payment text, p_comision numeric, p_neto numeric, p_retenciones numeric)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  update app.pagos set comision_mp = round(greatest(p_comision, 0), 2), neto_mp = round(greatest(p_neto, 0), 2),
+    retenciones_mp = round(greatest(coalesce(p_retenciones, 0), 0), 2)
+  where mp_payment_id = p_mp_payment and p_mp_payment ~ '^[0-9]{1,30}$' and p_comision is not null and p_neto is not null
+$function$
+;
+revoke all on function public.srv_montos_pago(text, numeric, numeric, numeric) from public, anon, authenticated, service_role;
+grant execute on function public.srv_montos_pago(text, numeric, numeric, numeric) to service_role;
+

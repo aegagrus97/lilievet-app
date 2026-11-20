@@ -50,6 +50,36 @@ const Tabla = ({ cab, children }) => html`<div class="table-wrap"><table class="
 const Vacio = ({ children }) => html`<p class="small muted">${children}</p>`;
 const estadoBadge = (e) => html`<${DS.Badge} tone=${(ESTADO[e] || ['neutral'])[0]}>${(ESTADO[e] || [0, e])[1]}<//>`;
 
+// ───────── Ganancias de los últimos 30 días ─────────
+// Comisión, depósito y retenciones: lo que reporta Mercado Pago por cada pago (exacto).
+// IVA por pagar: estimado. La cuota incluye IVA (16 %) y la comisión de Mercado Pago también trae IVA, que se acredita.
+const IVA = 0.16;
+const centavos = (x) => Math.round(x * 100) / 100;
+function Ganancias({ r }) {
+  const ivaCuotas = centavos(r.cuotas_30d * IVA / (1 + IVA));
+  const ivaComision = centavos(r.comision_30d * IVA / (1 + IVA));
+  const ivaPorPagar = Math.max(0, centavos(ivaCuotas - ivaComision));
+  const neta = centavos(r.depositado_30d - ivaPorPagar);
+  const sinDatos = r.cuotas_30d === 0;
+  const fila = (txt, monto, { signo = '', fuerte = false, nota } = {}) => html`<tr>
+    <td>${fuerte ? html`<b>${txt}</b>` : txt}${nota && html`<br /><span class="small muted">${nota}</span>`}</td>
+    <td class="num nw">${fuerte ? html`<b>${signo}${money(monto)}</b>` : signo + money(monto)}</td></tr>`;
+  return html`<${Caja} titulo="Ganancias" sub="Cuotas de servicio vigentes cobradas en los últimos 30 días (sin las reembolsadas).">
+    ${sinDatos
+      ? html`<p class="small muted">Aún no hay cuotas cobradas. Cuando conectes Mercado Pago, aquí verás cuánto cobraste, cuánto se quedó Mercado Pago de comisión, cuánto te depositó y tu ganancia neta.</p>`
+      : html`<div class="table-wrap"><table class="table"><tbody>
+          ${fila('Cuotas cobradas', r.cuotas_30d, { nota: 'Lo que pagaron los tutores, con IVA incluido.' })}
+          ${fila('Comisión de Mercado Pago', r.comision_30d, { signo: '− ' })}
+          ${r.retenciones_30d > 0 && fila('Impuestos que retuvo Mercado Pago', r.retenciones_30d, { signo: '− ' })}
+          ${fila('Depositado por Mercado Pago', r.depositado_30d, { fuerte: true })}
+          ${fila('IVA por pagar al SAT (estimado)', ivaPorPagar, { signo: '− ', nota: `IVA de tus cuotas (${money(ivaCuotas)}) menos el IVA que ya pagaste en la comisión (${money(ivaComision)}).` })}
+          ${fila('Ganancia neta', neta, { fuerte: true, nota: 'Antes de ISR, que depende de tu régimen fiscal.' })}
+        </tbody></table></div>`}
+    ${r.pagos_sin_detalle_30d > 0 && html`<${DS.Notice} tone="info">${r.pagos_sin_detalle_30d === 1 ? '1 pago todavía no tiene' : `${r.pagos_sin_detalle_30d} pagos todavía no tienen`} el detalle de Mercado Pago, así que no cuenta${r.pagos_sin_detalle_30d === 1 ? '' : 'n'} en el depósito ni en la ganancia.<//>`}
+    ${!sinDatos && html`<p class="small muted" style=${{ marginTop: 8 }}>La comisión, el depósito y las retenciones son los que reporta Mercado Pago en cada pago. El IVA es un cálculo aproximado: confírmalo con tu contador${r.retenciones_30d > 0 ? ', sobre todo porque Mercado Pago ya te retuvo impuestos' : ''}.</p>`}
+  <//>`;
+}
+
 // ───────── Resumen ─────────
 function ResumenVista({ r, onConteos }) {
   useEffect(() => { onConteos({ medicos: r.medicos_pendientes, reportes: r.reportes_abiertos, reembolsos: r.reembolsos_pendientes, tutores: r.tutores_sin_verificar }); }, [r]);
@@ -66,6 +96,7 @@ function ResumenVista({ r, onConteos }) {
         <div class="kpi"><span>Médicos aprobados</span><b>${r.medicos_aprobados}</b></div>
         <div class="kpi"><span>Tutores</span><b>${r.tutores}</b></div>
       </div>
+      <${Ganancias} r=${r} />
       <${Caja} titulo="Pendientes">
         <ul class="checklist">
           <li class=${r.medicos_pendientes ? 'falta' : 'ok'}><${Icon} name="shield" /><div><b class="small" style=${{ fontWeight: 600 }}>Médicos veterinarios por verificar</b></div><a href="#/medicos">${r.medicos_pendientes}</a></li>

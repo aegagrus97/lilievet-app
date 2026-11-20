@@ -3,6 +3,7 @@
 //  · Verifica la firma del aviso (cabecera x-signature, HMAC-SHA256 con la clave secreta del webhook).
 //  · Nunca confía en lo que trae el aviso: con el id consulta el pago directamente en Mercado Pago
 //    y usa SOLO esa respuesta (estado, monto, moneda y referencia).
+//  · De esa misma respuesta guarda la comisión de Mercado Pago, lo que deposita y las retenciones (Panel → Ganancias).
 //  · La base revisa monto y moneda, y es idempotente: un aviso repetido no cambia nada.
 import { createClient } from "npm:@supabase/supabase-js@2.119.0";
 
@@ -20,6 +21,19 @@ const SERVICE_KEY = clave("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
 const MP_TOKEN = Deno.env.get("MP_ACCESS_TOKEN") ?? "";
 const MP_SECRET = Deno.env.get("MP_WEBHOOK_SECRET") ?? "";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Comisión, depósito y retenciones según Mercado Pago. Retenciones = lo que falta entre bruto, comisión y depósito
+// (por ejemplo, impuestos que Mercado Pago retiene). Si falta algún dato, no se guarda nada.
+type PagoMP = { status?: string; transaction_amount?: number; fee_details?: { amount?: number; fee_payer?: string }[]; transaction_details?: { net_received_amount?: number } };
+function montos(pago: PagoMP): { comision: number; neto: number; retenciones: number } | null {
+  const bruto = Number(pago.transaction_amount);
+  const neto = Number(pago.transaction_details?.net_received_amount);
+  if (pago.status !== "approved" || !Number.isFinite(bruto) || !Number.isFinite(neto) || neto <= 0) return null;
+  const comision = (pago.fee_details ?? []).filter((f) => !f.fee_payer || f.fee_payer === "collector")
+    .reduce((t, f) => t + (Number.isFinite(Number(f.amount)) ? Number(f.amount) : 0), 0);
+  const centavos = (x: number) => Math.round(x * 100) / 100;
+  return { comision: centavos(comision), neto: centavos(neto), retenciones: centavos(Math.max(0, bruto - comision - neto)) };
+}
 
 const txt = (estado: number, t: string) => new Response(t, { status: estado, headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" } });
 
@@ -82,6 +96,11 @@ Deno.serve(async (req) => {
       p_moneda: String(pago.currency_id ?? ""),
     });
     if (error) { console.error("srv_registrar_pago", error.message); return txt(500, "reintentar"); }
+    const m = montos(pago);
+    if (m) {
+      const { error: e2 } = await servidor.rpc("srv_montos_pago", { p_mp_payment: String(pago.id), p_comision: m.comision, p_neto: m.neto, p_retenciones: m.retenciones });
+      if (e2) console.error("srv_montos_pago", e2.message);
+    }
     console.log("pago", String(pago.id), data);
     return txt(200, "ok");
   } catch (e) {

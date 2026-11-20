@@ -134,7 +134,7 @@ export function demoApi(quien) {
     mfaInscribir: async () => ({ id: 'f1', qr: '', secreto: 'EJEMPLO' }),
     mfaVerificar: async () => {},
     admin: {
-      resumen: () => espera({ medicos_pendientes: 1, medicos_aprobados: 3, tutores: 18, tutores_sin_verificar: 1, reportes_abiertos: 1, reembolsos_pendientes: 1, buscando: 2, por_pagar: 1, confirmadas: 4, realizadas_30d: 11, cuotas_30d: 1920, reembolsado_30d: 240, encuestas: 7 }),
+      resumen: () => espera({ medicos_pendientes: 1, medicos_aprobados: 3, tutores: 18, tutores_sin_verificar: 1, reportes_abiertos: 1, reembolsos_pendientes: 1, buscando: 2, por_pagar: 1, confirmadas: 4, realizadas_30d: 11, cuotas_30d: 1920, reembolsado_30d: 240, comision_30d: 158.72, retenciones_30d: 0, depositado_30d: 1761.28, pagos_sin_detalle_30d: 0, encuestas: 7 }),
       medicos: () => espera(adminMedicos),
       decidirMvz: async (id, accion) => { const m = adminMedicos.find((x) => x.id === id); if (accion === 'aprobar') { m.estado = 'aprobado'; m.cedula_verificada_at = m.identidad_verificada_at = en(0); } if (accion === 'suspender') m.estado = 'suspendido'; if (accion === 'reactivar') m.estado = 'aprobado'; },
       tutores: () => espera([{ id: 't1', nombre: 'Tania', apellidos: 'Herrera Luna', correo: 'tania@ejemplo.mx', telefono: '5512345678', telefono_verificado_at: en(-200), bloqueada: false, created_at: en(-24 * 30), solicitudes: 4 },

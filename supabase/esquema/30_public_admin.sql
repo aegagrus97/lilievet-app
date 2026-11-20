@@ -307,6 +307,11 @@ AS $function$ begin
     'realizadas_30d', (select count(*) from app.solicitudes where estado = 'realizada' and cerrada_at > now() - interval '30 days'),
     'cuotas_30d', (select coalesce(sum(monto), 0) from app.pagos where estado = 'aprobado' and aprobado_at > now() - interval '30 days'),
     'reembolsado_30d', (select coalesce(sum(monto), 0) from app.pagos where estado = 'reembolsado' and reembolsado_at > now() - interval '30 days'),
+    -- Lo que reporta Mercado Pago de las cuotas vigentes cobradas en los últimos 30 días
+    'comision_30d', (select coalesce(sum(comision_mp), 0) from app.pagos where estado = 'aprobado' and aprobado_at > now() - interval '30 days'),
+    'retenciones_30d', (select coalesce(sum(retenciones_mp), 0) from app.pagos where estado = 'aprobado' and aprobado_at > now() - interval '30 days'),
+    'depositado_30d', (select coalesce(sum(neto_mp), 0) from app.pagos where estado = 'aprobado' and aprobado_at > now() - interval '30 days'),
+    'pagos_sin_detalle_30d', (select count(*) from app.pagos where estado = 'aprobado' and aprobado_at > now() - interval '30 days' and neto_mp is null),
     'encuestas', (select count(*) from app.encuestas)
   );
 end $function$
