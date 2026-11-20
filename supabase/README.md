@@ -57,3 +57,7 @@ Pendientes que no se pueden cerrar desde el código (ver el README principal):
 - ~~Proyecto anterior de Supabase `LilieVET-v3-2` activo, con su clave en el repo público `lilieVET`.~~ **Pausado el 16 nov 2026.** Falta archivar ese repositorio y su página.
 - La rama `main` no está protegida y de ella sale el código que corre en el navegador de cada persona.
 - Configuración de Supabase Auth por confirmar: CAPTCHA, largo mínimo de contraseña, confirmación de correo y límites de SMS.
+
+## Fotos de los médicos veterinarios (20 nov 2026)
+
+Bucket público `fotos-mvz` (1 MB, solo JPG) con políticas en `storage.objects`: cada médico solo sube, lista y borra en su carpeta `<id>/<número>.jpg` (ver `esquema/70_fotos_mvz.sql`). La app recorta y reduce la foto en el navegador (600 px), lo que además borra los metadatos del archivo, como la ubicación GPS. Cuando el Panel usa "Quitar foto" o se eliminan los datos de una cuenta, la foto deja de mostrarse, pero el archivo se queda en Storage: si hace falta borrarlo, se hace desde Supabase → Storage → fotos-mvz.

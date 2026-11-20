@@ -1,5 +1,5 @@
 // Solicitar una consulta: servicio → domicilio → horario → médicos (1ª, 2ª y 3ª opción) → confirmar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda, FotoMvz } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, ir, useToast } from '../shell.js';
 import { useAccion } from '../cuenta.js';
@@ -150,8 +150,9 @@ export function Solicitar({ perfil }) {
           const pos = d.medicos.indexOf(m.id);
           return html`<article class=${'medico' + (pos >= 0 ? ' on' : '')} key=${m.id}>
             <div class="spread">
-              <div><h3 class="lv-card-name">${m.nombre}</h3>
-                <p class="lv-card-sub">Cédula ${m.cedula} · médico veterinario independiente</p></div>
+              <div class="medico-cab"><${FotoMvz} ruta=${m.foto} nombre=${m.nombre} />
+                <div><h3 class="lv-card-name">${m.nombre}</h3>
+                <p class="lv-card-sub">Cédula ${m.cedula} · médico veterinario independiente</p></div></div>
               ${pos >= 0 && html`<${DS.Badge} tone="completado">${ORDEN[pos]}<//>`}
             </div>
             <div><${DS.Badge} tone="verificado">Cédula verificada el ${fechaDia(diaISO(m.cedula_verificada_at))}<//></div>

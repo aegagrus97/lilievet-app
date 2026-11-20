@@ -126,6 +126,22 @@ export const SERVICIO_DESC = {
 };
 export const ESPECIE = { perro: 'Perro', gato: 'Gato' };
 export const SEXO = { macho: 'Macho', hembra: 'Hembra' };
+// Foto redonda del médico veterinario; sin foto, sus iniciales
+export function FotoMvz({ ruta, nombre = '', tam = 56 }) {
+  const url = fotoUrl(ruta);
+  const ini = nombre.split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+  const st = { width: tam, height: tam, fontSize: Math.round(tam / 2.8) };
+  return url
+    ? html`<img class="foto-mvz" src=${url} alt=${'Foto de ' + nombre} width=${tam} height=${tam} style=${st} loading="lazy" />`
+    : html`<span class="foto-mvz foto-mvz-vacia" style=${st} aria-hidden="true">${ini}</span>`;
+}
+// URL pública de la foto de un médico veterinario (en la vista de muestra ya viene como imagen)
+export function fotoUrl(ruta) {
+  if (!ruta) return null;
+  if (ruta.startsWith('data:')) return ruta;
+  const base = (window.LV_CONFIG || {}).supabaseUrl || '';
+  return `${base}/storage/v1/object/public/fotos-mvz/${ruta.split('/').map(encodeURIComponent).join('/')}`;
+}
 // Edad guardada en meses: "8 meses", "1 año", "3 años y 6 meses"
 export function edadTxt(m) {
   if (m === null || m === undefined || m === '') return '';

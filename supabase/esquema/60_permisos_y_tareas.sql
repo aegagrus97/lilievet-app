@@ -83,3 +83,6 @@ revoke all on function privado.llamar_funcion(text) from public, anon, authentic
 
 select cron.schedule('lilievet-avisos', '* * * * *', $$select privado.llamar_funcion('enviar-avisos')$$);
 select cron.schedule('lilievet-reembolsos', '*/15 * * * *', $$select privado.llamar_funcion('procesar-reembolsos')$$);
+
+-- 2026-11-20 · migración foto_mvz: bucket público 'fotos-mvz' (1 MB, solo JPG) y políticas de Storage;
+-- ver supabase/esquema/70_fotos_mvz.sql

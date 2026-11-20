@@ -1,5 +1,5 @@
 // Panel de LilieVET. Solo abre con doble factor (app de autenticación); la base lo exige en cada función.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, fechaHora, fechaDia, diaISO, ventana, telBonito, money, soloDigitos } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, fechaHora, fechaDia, diaISO, ventana, telBonito, money, soloDigitos, FotoMvz } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, useToast, ErrorCarga, Cargando, NAV } from '../shell.js';
 import { Caja, useAccion } from '../cuenta.js';
@@ -87,10 +87,13 @@ function Medico({ m, recargar }) {
   const tono = { pendiente: 'pendiente', aprobado: 'verificado', suspendido: 'error' }[m.estado];
   return html`<article class=${'box stack' + (m.estado === 'pendiente' ? ' decision' : '')}>
     <div class="spread" style=${{ alignItems: 'flex-start' }}>
-      <div><h3 class="section-title">${m.nombre} ${m.apellidos}</h3><p class="small muted">${m.correo} · ${telBonito(m.telefono)}</p></div>
+      <div class="medico-cab"><${FotoMvz} ruta=${m.foto} nombre=${`${m.nombre} ${m.apellidos}`} tam=${64} />
+        <div><h3 class="section-title">${m.nombre} ${m.apellidos}</h3><p class="small muted">${m.correo} · ${telBonito(m.telefono)}</p></div></div>
       <${DS.Badge} tone=${tono}>${{ pendiente: 'Por verificar', aprobado: 'Aprobado', suspendido: 'Suspendido' }[m.estado]}<//>
     </div>
     <dl class="datos">
+      <dt>Foto</dt><dd>${m.foto ? html`Revisa que sea una foto real de su cara. <button type="button" class="linkish" disabled=${st.ocupado} onClick=${() => hacer('quitar_foto', 'Foto quitada. Le avisamos para que suba otra.')}>Quitar foto</button>` : 'Sin foto'}</dd>
+      <dt>Presentación</dt><dd>${m.presentacion || 'Sin presentación'}</dd>
       <dt>Cédula</dt><dd>${m.cedula || 'Sin capturar'}${m.cedula_verificada_at ? ` · verificada el ${fechaDia(diaISO(m.cedula_verificada_at))}` : ''}</dd>
       <dt>Identidad</dt><dd>${m.identidad_verificada_at ? `Confirmada en videollamada el ${fechaDia(diaISO(m.identidad_verificada_at))}` : 'Sin confirmar'}</dd>
       <dt>Zonas</dt><dd>${m.zonas.join(', ') || 'Sin zonas'}</dd>

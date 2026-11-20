@@ -110,6 +110,20 @@ function supabaseApi() {
 
     // Médico veterinario
     guardarPerfilMvz: (p) => rpc('guardar_perfil_mvz', { p }),
+    // Foto de perfil: se sube a su carpeta en Storage, la base la registra y se borra la anterior
+    async subirFotoMvz(jpg) {
+      const uid = (await sb.auth.getSession()).data.session?.user?.id;
+      if (!uid) throw new Error('Inicia sesión para continuar.');
+      const ruta = `${uid}/${Date.now()}.jpg`;
+      const { error } = await sb.storage.from('fotos-mvz').upload(ruta, jpg, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw new Error(/size|exceed/i.test(error.message || '') ? 'La foto pesa demasiado. Elige otra.' : 'No pudimos subir la foto. Intenta de nuevo.');
+      const anterior = await rpc('guardar_foto_mvz', { p_ruta: ruta });
+      if (anterior) await sb.storage.from('fotos-mvz').remove([anterior]).catch(() => {});
+    },
+    async quitarFotoMvz() {
+      const anterior = await rpc('guardar_foto_mvz', { p_ruta: null });
+      if (anterior) await sb.storage.from('fotos-mvz').remove([anterior]).catch(() => {});
+    },
     guardarHorario: (bloques) => rpc('guardar_horario', { p: bloques }),
     bloquearDia: (fecha, bloquear) => rpc('bloquear_dia', { p_fecha: fecha, p_bloquear: bloquear }),
     solicitudesMvz: () => rpc('mis_solicitudes_mvz'),

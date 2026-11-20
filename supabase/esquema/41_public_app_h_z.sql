@@ -12,7 +12,7 @@ begin
   perform privado.limitar('ver_agenda', 240, interval '1 hour');
   select coalesce(jsonb_agg(jsonb_build_object(
       'id', m.id, 'nombre', pf.nombre || ' ' || pf.apellidos, 'cedula', m.cedula,
-      'cedula_verificada_at', m.cedula_verificada_at, 'presentacion', m.presentacion,
+      'cedula_verificada_at', m.cedula_verificada_at, 'presentacion', m.presentacion, 'foto', m.foto,
       'precio', privado.precio(m, p_servicio), 'medios_pago', m.medios_pago) order by privado.precio(m, p_servicio), pf.nombre), '[]'::jsonb) into v
   from app.mvz m join app.perfiles pf on pf.id = m.id
   where privado.disponible(m.id, p_alcaldia, p_servicio, p_inicia_at);
@@ -45,7 +45,7 @@ begin
       -- El Panel pidió corregir la cédula y todavía no la vuelve a escribir
       'cedula_por_corregir', m.cedula is null and m.cedula_verificada_at is null
                              and exists (select 1 from app.avisos a where a.destinatario_id = m.id and a.tipo = 'cedula'),
-      'presentacion', m.presentacion, 'precio_consulta', m.precio_consulta, 'precio_vacunacion', m.precio_vacunacion,
+      'presentacion', m.presentacion, 'foto', m.foto, 'precio_consulta', m.precio_consulta, 'precio_vacunacion', m.precio_vacunacion,
       'precio_desparasitacion', m.precio_desparasitacion, 'medios_pago', m.medios_pago,
       'comparte_telefono', m.comparte_telefono_at is not null, 'recibe_solicitudes', m.recibe_solicitudes,
       'zonas', coalesce((select jsonb_agg(alcaldia order by alcaldia) from app.mvz_zonas where mvz_id = m.id), '[]'::jsonb),

@@ -95,6 +95,10 @@ begin
   elsif p_accion = 'reactivar' then
     if m.cedula_verificada_at is null then perform privado.error('Primero hay que aprobar la cuenta.'); end if;
     update app.mvz set estado = 'aprobado' where id = m.id;
+  elsif p_accion = 'quitar_foto' then
+    if m.foto is null then perform privado.error('Ese médico no tiene foto.'); end if;
+    update app.mvz set foto = null where id = m.id;
+    perform privado.avisar(m.id, 'foto', 'Quitamos tu foto de perfil', 'Tu foto no cumplía con lo que pedimos. Sube otra en Servicios: de frente, con buena luz y que se vea tu cara.');
   elsif p_accion = 'corregir_cedula' then
     if m.cedula is null then perform privado.error('Ya se le pidió corregir su cédula; falta que la vuelva a escribir.'); end if;
     update app.mvz set estado = 'pendiente', cedula = null, cedula_verificada_at = null where id = m.id;
@@ -128,7 +132,7 @@ begin
   update auth.users set email = 'eliminada-' || id::text || '@invalid.invalid', phone = null, phone_confirmed_at = null,
     raw_user_meta_data = '{}'::jsonb, encrypted_password = '', banned_until = 'infinity' where id = p_cuenta;
   update app.perfiles set nombre = 'Cuenta', apellidos = 'eliminada', correo = '', telefono = '0000000000', telefono_verificado_at = null, bloqueada = true where id = p_cuenta;
-  update app.mvz set estado = 'suspendido', cedula = null, cedula_verificada_at = null, presentacion = null, comparte_telefono_at = null, recibe_solicitudes = false where id = p_cuenta;
+  update app.mvz set estado = 'suspendido', cedula = null, cedula_verificada_at = null, presentacion = null, foto = null, comparte_telefono_at = null, recibe_solicitudes = false where id = p_cuenta;
   delete from app.mvz_zonas where mvz_id = p_cuenta;
   delete from app.mvz_horario where mvz_id = p_cuenta;
   delete from app.mvz_bloqueos where mvz_id = p_cuenta;
@@ -194,7 +198,7 @@ AS $function$ declare v jsonb; begin
   select coalesce(jsonb_agg(jsonb_build_object(
     'id', m.id, 'nombre', p.nombre, 'apellidos', p.apellidos, 'correo', p.correo, 'telefono', p.telefono, 'bloqueada', p.bloqueada,
     'estado', m.estado, 'cedula', m.cedula, 'cedula_verificada_at', m.cedula_verificada_at, 'identidad_verificada_at', m.identidad_verificada_at,
-    'presentacion', m.presentacion, 'precio_consulta', m.precio_consulta, 'precio_vacunacion', m.precio_vacunacion, 'precio_desparasitacion', m.precio_desparasitacion,
+    'presentacion', m.presentacion, 'foto', m.foto, 'precio_consulta', m.precio_consulta, 'precio_vacunacion', m.precio_vacunacion, 'precio_desparasitacion', m.precio_desparasitacion,
     'medios_pago', m.medios_pago, 'comparte_telefono', m.comparte_telefono_at is not null, 'recibe_solicitudes', m.recibe_solicitudes,
     'zonas', coalesce((select jsonb_agg(alcaldia order by alcaldia) from app.mvz_zonas where mvz_id = m.id), '[]'::jsonb),
     'bloques', (select count(*) from app.mvz_horario where mvz_id = m.id),

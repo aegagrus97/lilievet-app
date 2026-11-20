@@ -117,6 +117,8 @@ export function demoApi(quien) {
     pagar: async (id) => { await espera(null, 700); const s = sols.find((x) => x.id === id); s.estado = 'confirmada'; s.pago = 'aprobado'; s.medico.telefono = '5598765432'; },
 
     guardarPerfilMvz: async (p) => { Object.assign(perfil.mvz, p, { comparte_telefono: p.comparte_telefono === 'true', cedula: perfil.mvz.cedula_verificada_at ? perfil.mvz.cedula : p.cedula }); return espera(null, 400); },
+    subirFotoMvz: async (jpg) => { perfil.mvz.foto = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(jpg); }); },
+    quitarFotoMvz: async () => { perfil.mvz.foto = null; },
     guardarHorario: async (b) => { perfil.mvz.horario = b; return espera(null, 400); },
     bloquearDia: async (f, si) => { perfil.mvz.bloqueos = si ? [...new Set([...perfil.mvz.bloqueos, f])].sort() : perfil.mvz.bloqueos.filter((x) => x !== f); },
     solicitudesMvz: () => espera(quien === 'mvz' ? solsM : []),
