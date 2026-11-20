@@ -121,7 +121,9 @@ function Consulta({ s, recargar }) {
     ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
     ${modo === 'reagendar' && html`<${Reagendar} s=${s} onListo=${() => { setModo(null); toast('Propuesta enviada al tutor.'); recargar(); }} />`}
     ${modo === 'cancelar' && html`<div class="sub-box stack-sm">
-      <p><b>¿Cancelar esta consulta?</b></p><p class="small">Al tutor se le reembolsa la cuota de servicio completa. Si puedes atender otro día, mejor propón otro horario.</p>
+      <p><b>¿Cancelar esta consulta?</b></p><p class="small">${s.estado === 'por_pagar'
+        ? 'El tutor todavía no ha pagado, así que no se le cobra nada. Le avisamos que cancelaste para que pueda pedir otra consulta.'
+        : `Al tutor se le reembolsa la cuota de servicio completa.${s.reagendas < 1 && !empezo ? ' Si puedes atender otro día, mejor propón otro horario.' : ''}`}</p>
       <${DS.Field} label="Motivo" maxLength=${300} value=${motivo} onChange=${(e) => setMotivo(e.target.value)} />
       <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || motivo.trim().length < 5} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => setModo(null)}>No<//></div>
     </div>`}
