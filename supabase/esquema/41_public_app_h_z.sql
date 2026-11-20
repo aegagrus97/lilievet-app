@@ -278,8 +278,11 @@ begin
     perform privado.ofrecer_siguiente(r.solicitud_id);
   end loop;
 
+  -- El correo y el WhatsApp de este aviso llevan el enlace directo al cobro (ver enviar-avisos)
   perform privado.avisar(s.tutor_id, 'aceptada', 'Un médico veterinario aceptó tu solicitud',
-    'Para confirmar tu consulta del ' || privado.cuando(s.inicia_at) || ', paga la cuota de servicio en LilieVET. Si no se paga a tiempo, el horario se libera.', s.id);
+    (select 'Para confirmar tu consulta del ' || privado.cuando(x.inicia_at) || ', paga la cuota de servicio de $' || x.cuota
+            || ' antes del ' || privado.cuando(x.pagar_antes_de) || '. Si no se paga a tiempo, el horario se libera y no se cobra nada.'
+     from app.solicitudes x where x.id = s.id), s.id);
   return jsonb_build_object('resultado', 'aceptada');
 end $function$
 ;

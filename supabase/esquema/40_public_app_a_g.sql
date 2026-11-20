@@ -159,6 +159,7 @@ declare
   v_inicia timestamptz;
   v_medicos uuid[];
   v_id uuid;
+  v_edad integer;
   i integer;
 begin
   if privado.param('exigir_telefono_verificado') = 'true'::jsonb and t.telefono_verificado_at is null then
@@ -174,6 +175,9 @@ begin
   if v_alcaldia is null or not (v_alcaldia = any (privado.alcaldias())) then perform privado.error('Elige una alcaldía de la lista.'); end if;
   if coalesce(p ->> 'especie', '') not in ('perro', 'gato') then perform privado.error('Elige perro o gato.'); end if;
   if coalesce(p ->> 'cp', '') !~ '^[0-9]{5}$' then perform privado.error('Escribe un código postal de 5 dígitos.'); end if;
+  if coalesce(p ->> 'sexo', '') not in ('macho', 'hembra') then perform privado.error('Elige si tu mascota es macho o hembra.'); end if;
+  if coalesce(p ->> 'edad_meses', '') ~ '^[0-9]{1,3}$' then v_edad := (p ->> 'edad_meses')::integer; end if;
+  if v_edad is null or v_edad > 360 then perform privado.error('Escribe la edad de tu mascota.'); end if;
 
   begin
     v_inicia := (p ->> 'inicia_at')::timestamptz;
@@ -204,9 +208,13 @@ begin
   end loop;
 
   begin
-    insert into app.solicitudes (tutor_id, servicio, mascota, especie, alcaldia, colonia, calle_numero, cp, referencias,
+    insert into app.solicitudes (tutor_id, servicio, mascota, especie, sexo, edad_meses, motivo, alcaldia, colonia, calle_numero, cp, referencias,
                                  inicia_at, termina_at, inicia_original_at, cuota)
-    values (t.id, v_servicio, privado.txt(p ->> 'mascota', 1, 40, 'Nombre de tu mascota'), p ->> 'especie', v_alcaldia,
+    values (t.id, v_servicio, privado.txt(p ->> 'mascota', 1, 40, 'Nombre de tu mascota'), p ->> 'especie',
+            p ->> 'sexo', v_edad,
+            -- En consulta general se pide el motivo (lo ve el médico al recibir la solicitud); en lo demás es opcional
+            privado.txt(p ->> 'motivo', case when v_servicio = 'consulta' then 10 else 0 end, 400, 'Qué le pasa a tu mascota'),
+            v_alcaldia,
             privado.txt(p ->> 'colonia', 2, 80, 'Colonia'), privado.txt(p ->> 'calle_numero', 3, 120, 'Calle y número'),
             p ->> 'cp', privado.txt(p ->> 'referencias', 0, 200, 'Referencias'),
             v_inicia, v_inicia + interval '2 hours', v_inicia, privado.param_int('cuota_servicio'))

@@ -23,7 +23,7 @@ const dom = { alcaldia: 'Coyoacán', colonia: 'Del Carmen', calle_numero: 'Viena
 function solicitudesTutor() {
   const a = bloque(2, 10), b = bloque(4, 16), c = bloque(6, 12), d = bloque(-5, 10);
   return [
-    { id: 's1', servicio: 'consulta', mascota: 'Liebe', especie: 'perro', ...dom, inicia_at: a, termina_at: mas2(a), estado: 'por_pagar', cuota: 120, precio_servicio: 650, pagar_antes_de: en(9), reagendas: 0, created_at: en(-3),
+    { id: 's1', servicio: 'consulta', mascota: 'Liebe', especie: 'perro', sexo: 'hembra', edad_meses: 40, motivo: 'Se rasca mucho las orejas desde hace una semana y sacude la cabeza.', ...dom, inicia_at: a, termina_at: mas2(a), estado: 'por_pagar', cuota: 120, precio_servicio: 650, pagar_antes_de: en(9), reagendas: 0, created_at: en(-3),
       opciones: [{ orden: 1, estado: 'rechazada', nombre: MEDICOS[1].nombre }, { orden: 2, estado: 'aceptada', nombre: MEDICOS[0].nombre }], medico: legM(MEDICOS[0]), pago: 'creado', reportes: [] },
     { id: 's2', servicio: 'vacunacion', mascota: 'Lilie', especie: 'gato', ...dom, inicia_at: b, termina_at: mas2(b), estado: 'confirmada', cuota: 120, precio_servicio: 600, reagendas: 0, created_at: en(-30),
       reagenda_propuesta_at: bloque(5, 10), opciones: [{ orden: 1, estado: 'aceptada', nombre: MEDICOS[1].nombre }], medico: legM(MEDICOS[1], '5523456789'), pago: 'aprobado', reportes: [] },
@@ -36,9 +36,9 @@ function solicitudesTutor() {
 function solicitudesMvz() {
   const a = bloque(1, 12), b = bloque(2, 10), c = bloque(3, 16), d = bloque(5, 10);
   return [
-    { id: 'q1', servicio: 'consulta', especie: 'perro', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: b, termina_at: mas2(b), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.7) }, reagendas: 0 },
-    { id: 'q2', servicio: 'vacunacion', especie: 'gato', alcaldia: 'Benito Juárez', colonia: 'Narvarte', inicia_at: d, termina_at: mas2(d), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.3) }, reagendas: 0 },
-    { id: 'q3', servicio: 'consulta', especie: 'gato', alcaldia: 'Coyoacán', colonia: 'Copilco', inicia_at: c, termina_at: mas2(c), estado: 'por_pagar', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0 },
+    { id: 'q1', servicio: 'consulta', especie: 'perro', sexo: 'macho', edad_meses: 84, motivo: 'Cojea de la pata trasera derecha desde ayer, come bien.', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: b, termina_at: mas2(b), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.7) }, reagendas: 0 },
+    { id: 'q2', servicio: 'vacunacion', especie: 'gato', sexo: 'hembra', edad_meses: 4, alcaldia: 'Benito Juárez', colonia: 'Narvarte', inicia_at: d, termina_at: mas2(d), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.3) }, reagendas: 0 },
+    { id: 'q3', servicio: 'consulta', especie: 'gato', sexo: 'macho', edad_meses: 30, motivo: 'Vomita después de comer desde hace tres días.', alcaldia: 'Coyoacán', colonia: 'Copilco', inicia_at: c, termina_at: mas2(c), estado: 'por_pagar', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0 },
     { id: 'q4', servicio: 'consulta', especie: 'perro', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: a, termina_at: mas2(a), estado: 'confirmada', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0,
       contacto: { nombre: 'Tania Herrera Luna', telefono: '5512345678', mascota: 'Liebe', calle_numero: 'Viena 120, int. 3', cp: '04100', referencias: 'Portón verde, timbre 3' } },
   ];
@@ -144,6 +144,10 @@ export function demoApi(quien) {
       pagos: () => espera([{ id: 'g1', monto: 120, estado: 'aprobado', mp_payment_id: '98200011', aprobado_at: en(-30), created_at: en(-31), tutor: 'Tania Herrera Luna', principal: true },
         { id: 'g2', monto: 120, estado: 'reembolso_pendiente', mp_payment_id: '98200377', motivo_reembolso: 'El médico veterinario canceló', intentos_reembolso: 0, aprobado_at: en(-50), created_at: en(-51), tutor: 'Tomás Rivas', principal: true }]),
       procesarReembolsos: () => espera({ reembolsados: 1, fallidos: 0 }, 800),
+      demanda: () => espera([
+        { alcaldia: 'Azcapotzalco', busquedas: 7, tutores: 5, consulta: 5, vacunacion: 2, desparasitacion: 0, sin_medicos: true, ultima: en(-2), medicos_hoy: 0 },
+        { alcaldia: 'Tlalpan', busquedas: 3, tutores: 3, consulta: 1, vacunacion: 1, desparasitacion: 1, sin_medicos: false, ultima: en(-30), medicos_hoy: 1 },
+      ]),
       encuestas: () => espera([{ solicitud_id: 's4', se_presento: true, puntualidad: 5, trato: 5, recomendaria: 10, comentario: 'Muy paciente con mi gata.', created_at: en(-70), servicio: 'consulta', inicia_at: bloque(-5, 10), medico: MEDICOS[2].nombre }]),
       bitacora: () => espera([{ id: 3, accion: 'mvz_aprobar', objeto: 'mvz', objeto_id: 'm3', created_at: en(-24 * 8), actor: 'Katia Moctezuma' }, { id: 2, accion: 'parametro', objeto: 'parametro', objeto_id: 'cuota_servicio', detalle: { valor: '120' }, created_at: en(-24 * 9), actor: 'Katia Moctezuma' }]),
       parametros: () => espera({ cuota_servicio: 120, minutos_respuesta: 60, horas_para_pagar: 12, horas_cancelacion: 24, horas_anticipacion: 3, dias_agenda: 14, exigir_telefono_verificado: true, version_terminos: '2026-11', version_privacidad: '2026-11', version_carta: '2026-11' }),

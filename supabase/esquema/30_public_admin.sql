@@ -122,7 +122,8 @@ begin
   if exists (select 1 from app.pagos g join app.solicitudes s on s.id = g.solicitud_id where s.tutor_id = p_cuenta and g.estado = 'reembolso_pendiente') then
     perform privado.error('Esa cuenta tiene un reembolso pendiente. Envíalo antes de eliminar sus datos.');
   end if;
-  update app.solicitudes set mascota = '-', colonia = 'eliminado', calle_numero = 'eliminado', cp = '00000', referencias = null where tutor_id = p_cuenta;
+  update app.solicitudes set mascota = '-', colonia = 'eliminado', calle_numero = 'eliminado', cp = '00000', referencias = null, motivo = null where tutor_id = p_cuenta;
+  delete from app.demanda_sin_medico where tutor_id = p_cuenta;
   -- La cuenta de acceso queda sin correo, sin celular, sin contraseña y sin poder entrar
   update auth.users set email = 'eliminada-' || id::text || '@invalid.invalid', phone = null, phone_confirmed_at = null,
     raw_user_meta_data = '{}'::jsonb, encrypted_password = '', banned_until = 'infinity' where id = p_cuenta;

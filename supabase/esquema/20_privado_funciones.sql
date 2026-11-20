@@ -246,7 +246,8 @@ CREATE OR REPLACE FUNCTION privado.solicitud_mvz(s app.solicitudes, p_mvz uuid)
  SET search_path TO ''
 AS $function$
   select jsonb_build_object(
-    'id', s.id, 'servicio', s.servicio, 'especie', s.especie, 'alcaldia', s.alcaldia, 'colonia', s.colonia,
+    'id', s.id, 'servicio', s.servicio, 'especie', s.especie, 'sexo', s.sexo, 'edad_meses', s.edad_meses, 'motivo', s.motivo,
+    'alcaldia', s.alcaldia, 'colonia', s.colonia,
     'inicia_at', s.inicia_at, 'termina_at', s.termina_at, 'precio_servicio', s.precio_servicio,
     'estado', case when s.mvz_id = p_mvz then s.estado else 'buscando' end,
     'oferta', (select jsonb_build_object('estado', o.estado, 'vence_at', o.vence_at) from app.solicitud_opciones o where o.solicitud_id = s.id and o.mvz_id = p_mvz),
@@ -265,7 +266,7 @@ CREATE OR REPLACE FUNCTION privado.solicitud_tutor(s app.solicitudes)
  SET search_path TO ''
 AS $function$
   select jsonb_build_object(
-    'id', s.id, 'servicio', s.servicio, 'mascota', s.mascota, 'especie', s.especie,
+    'id', s.id, 'servicio', s.servicio, 'mascota', s.mascota, 'especie', s.especie, 'sexo', s.sexo, 'edad_meses', s.edad_meses, 'motivo', s.motivo,
     'alcaldia', s.alcaldia, 'colonia', s.colonia, 'calle_numero', s.calle_numero, 'cp', s.cp, 'referencias', s.referencias,
     'inicia_at', s.inicia_at, 'termina_at', s.termina_at, 'estado', s.estado, 'cuota', s.cuota,
     'precio_servicio', s.precio_servicio, 'pagar_antes_de', s.pagar_antes_de, 'reagendas', s.reagendas,

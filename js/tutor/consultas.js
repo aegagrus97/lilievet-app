@@ -1,5 +1,5 @@
 // Consultas del tutor: estado, pago de la cuota, contacto del médico, cancelación, reagenda, reporte y encuesta.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, ventana, falta, fechaDia, diaISO, fechaHora, telBonito, money, leyenda } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, mascotaTxt, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, ventana, falta, fechaDia, diaISO, fechaHora, telBonito, money, leyenda } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
 import { useAccion, FormReporte } from '../cuenta.js';
@@ -35,7 +35,7 @@ function Encuesta({ s, onListo }) {
   </div>`;
 }
 
-function Tarjeta({ s, P, abierta, recargar }) {
+function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
   const toast = useToast();
   const [st, correr, limpiar] = useAccion();
   const [modo, setModo] = useState(null);           // null | cancelar | reporte
@@ -48,6 +48,12 @@ function Tarjeta({ s, P, abierta, recargar }) {
   const abierto = s.reportes.some((r) => r.estado === 'abierto');
 
   const pagar = () => correr(async () => { await api.pagar(s.id); if (api.mode === 'demo') { toast('Consulta confirmada.', { sparks: true }); recargar(); } });
+  // Enlace del correo/WhatsApp "médico aceptó" (…#/consultas/<id>/pagar): abre el cobro directo, una sola vez
+  useEffect(() => {
+    if (!autoPagar) return;
+    history.replaceState(null, '', location.pathname + location.search + '#/consultas/' + s.id);
+    if (s.estado === 'por_pagar') pagar();
+  }, []);
   const cancelar = async () => {
     const r = await correr(() => api.cancelarSolicitud(s.id));
     if (r) { setModo(null); toast(r.reembolso ? 'Consulta cancelada. Te reembolsamos la cuota completa.' : 'Solicitud cancelada.'); recargar(); }
@@ -58,7 +64,8 @@ function Tarjeta({ s, P, abierta, recargar }) {
     <div class="spread" style=${{ alignItems: 'flex-start' }}>
       <div><h2 class="section-title">${SERVICIO[s.servicio]} para ${s.mascota}</h2>
         <p style=${{ marginTop: 2 }}>${ventana(s.inicia_at, s.termina_at)}</p>
-        <p class="small muted">${s.colonia}, ${s.alcaldia}</p></div>
+        <p class="small muted">${s.colonia}, ${s.alcaldia}</p>
+        ${s.sexo && html`<p class="small muted">${mascotaTxt(s)}</p>`}</div>
       <${DS.Badge} tone=${tono}>${palabra}<//>
     </div>
     <p class="small">${texto}</p>
@@ -126,6 +133,7 @@ export function Consultas({ perfil, sub }) {
     return () => clearTimeout(t);
   }, [esperandoPago, vueltas, datos]);
   useEffect(() => { if (sub && datos) document.getElementById('s-' + sub)?.scrollIntoView({ block: 'start' }); }, [sub, !!datos]);
+  const pagarAhora = location.hash.replace(/\?.*$/, '').endsWith('/pagar');
 
   if (error) return html`<div class="page page-narrow"><${ErrorCarga} error=${error} onReintentar=${recargar} /></div>`;
   if (!datos) return html`<${Cargando} />`;
@@ -135,7 +143,7 @@ export function Consultas({ perfil, sub }) {
     <${PageHead} titulo="Consultas"><${DS.Button} variant="secondary" onClick=${() => ir('solicitar')}><${Icon} name="plus" /> Solicitar<//><//>
     ${!datos.length && html`<${DS.EmptyState} who="liebe" title="Aún no tienes consultas" action=${html`<${DS.Button} block onClick=${() => ir('solicitar')}>Solicitar consulta<//>`}>
       Cuando solicites una, aquí verás su estado y los datos de tu médico veterinario.<//>`}
-    ${vivas.map((s) => html`<${Tarjeta} key=${s.id} s=${s} P=${perfil.parametros} abierta=${sub === s.id} recargar=${recargar} />`)}
+    ${vivas.map((s) => html`<${Tarjeta} key=${s.id} s=${s} P=${perfil.parametros} abierta=${sub === s.id} autoPagar=${pagarAhora && sub === s.id} recargar=${recargar} />`)}
     ${pasadas.length > 0 && html`<h2 class="section-title">Anteriores</h2>`}
     ${pasadas.map((s) => html`<${Tarjeta} key=${s.id} s=${s} P=${perfil.parametros} abierta=${sub === s.id} recargar=${recargar} />`)}
   </div>`;

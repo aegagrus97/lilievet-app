@@ -1,5 +1,5 @@
 // Solicitudes del médico veterinario: aceptar o rechazar, consultas confirmadas con contacto, cancelar y reagendar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora, mascotaTxt } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
 import { Caja, useAccion, FormReporte } from '../cuenta.js';
@@ -90,7 +90,8 @@ function Oferta({ s, precio, recargar }) {
   return html`<article class="lv-req lv-req-nueva" style=${{ maxWidth: 'none' }}>
     <div class="lv-req-head"><${DS.Badge} tone="nuevo">Nueva<//>
       <span class=${'lv-req-timer' + (min <= 10 ? ' lv-req-timer-low' : '')}>Te quedan <b>${falta(s.oferta.vence_at)}</b> para responder</span></div>
-    <div><h3 class="lv-req-title">${SERVICIO[s.servicio]} · ${ESPECIE[s.especie].toLowerCase()}</h3>
+    <div><h3 class="lv-req-title">${SERVICIO[s.servicio]} · ${mascotaTxt(s).toLowerCase()}</h3>
+      ${s.motivo && html`<p class="lv-req-detail" style=${{ color: 'var(--ink)' }}><b>Lo que cuenta el tutor:</b> ${s.motivo}</p>`}
       <p class="lv-req-detail">Verás el nombre, el celular y el domicilio del tutor cuando la consulta quede confirmada.</p></div>
     <div class="lv-req-rows">
       <div class="lv-req-row"><${Icon} name="clock" /><span>${ventana(s.inicia_at, s.termina_at)}</span></div>
@@ -117,9 +118,11 @@ function Consulta({ s, recargar }) {
   return html`<article class="box stack">
     <div class="spread" style=${{ alignItems: 'flex-start' }}>
       <div><h3 class="section-title">${SERVICIO[s.servicio]} · ${c?.mascota || ESPECIE[s.especie].toLowerCase()}</h3>
-        <p style=${{ marginTop: 2 }}>${ventana(s.inicia_at, s.termina_at)}</p><p class="small muted">${s.colonia}, ${s.alcaldia}</p></div>
+        <p style=${{ marginTop: 2 }}>${ventana(s.inicia_at, s.termina_at)}</p><p class="small muted">${s.colonia}, ${s.alcaldia}</p>
+        <p class="small muted">${mascotaTxt(s)}</p></div>
       <${DS.Badge} tone=${badge[0]}>${badge[1]}<//>
     </div>
+    ${s.motivo && html`<p class="small"><b>Lo que cuenta el tutor:</b> ${s.motivo}</p>`}
     ${s.estado === 'por_pagar' && html`<p class="small muted">Cuando el tutor pague la cuota de servicio, la consulta queda confirmada y aquí aparecen sus datos. Si no paga a tiempo, el horario se libera solo.</p>`}
     ${c && html`<dl class="datos sub-box">
       <dt>Tutor</dt><dd>${c.nombre}</dd>

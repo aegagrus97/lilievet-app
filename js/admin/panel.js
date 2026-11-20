@@ -236,6 +236,20 @@ function Tutores({ onConteos }) {
   }}<//>`;
 }
 
+// ───────── Zonas sin médico: búsquedas de tutores que no encontraron horarios ─────────
+const Demanda = () => html`<${Lista} fn=${() => api.admin.demanda()}>${(lista) => html`<${Caja} titulo="Zonas sin médico"
+    sub="Alcaldías donde tutores buscaron y no encontraron horarios en los últimos 90 días. Sirve para decidir dónde reclutar médicos veterinarios.">
+    ${!lista.length && html`<${Vacio}>Todavía nadie se ha quedado sin horarios. Aquí aparecerán las alcaldías cuando pase.<//>`}
+    ${lista.length > 0 && html`<${Tabla} cab=${['Alcaldía', 'Tutores', 'Búsquedas', 'Consulta', 'Vacunación', 'Desparasitación', 'Médicos hoy', 'Última']}>
+      ${lista.map((z) => html`<tr key=${z.alcaldia}>
+        <td>${z.alcaldia}${z.sin_medicos ? html` <${DS.Badge} tone="error">Sin médicos<//>` : html` <${DS.Badge} tone="pendiente">Sin horarios<//>`}</td>
+        <td class="num"><b>${z.tutores}</b></td><td class="num">${z.busquedas}</td>
+        <td class="num">${z.consulta}</td><td class="num">${z.vacunacion}</td><td class="num">${z.desparasitacion}</td>
+        <td class="num">${z.medicos_hoy}</td><td class="nw">${fechaHora(z.ultima)}</td></tr>`)}
+    <//>`}
+    <p class="small muted" style=${{ marginTop: 12 }}>“Sin médicos”: ningún médico aprobado atendía esa alcaldía cuando buscaron. “Sin horarios”: sí había médicos, pero no tenían horarios libres para ese servicio. Se cuenta una búsqueda por tutor, alcaldía, servicio y día; no se guarda la dirección.</p>
+  <//>`}<//>`;
+
 // ───────── Encuestas, bitácora y parámetros ─────────
 const Encuestas = () => html`<${Lista} fn=${() => api.admin.encuestas()}>${(lista) => html`<${Caja} titulo="Encuestas privadas" sub="Sirven para mejorar el servicio. No se publican ni se usan para decidir sobre un médico veterinario.">
   ${!lista.length && html`<${Vacio}>Aún no hay respuestas.<//>`}
@@ -297,7 +311,7 @@ function Mas() {
 
 const SECCIONES = {
   resumen: ['Resumen', Resumen], medicos: ['Médicos veterinarios', Medicos], consultas: ['Consultas', ConsultasAdmin], reportes: ['Reportes', Reportes],
-  pagos: ['Cuotas y reembolsos', Pagos], tutores: ['Tutores', Tutores], encuestas: ['Encuestas', Encuestas], bitacora: ['Bitácora', Bitacora],
+  pagos: ['Cuotas y reembolsos', Pagos], tutores: ['Tutores', Tutores], encuestas: ['Encuestas', Encuestas], demanda: ['Zonas sin médico', Demanda], bitacora: ['Bitácora', Bitacora],
   parametros: ['Parámetros', Parametros], mas: ['Más', Mas],
 };
 export const tituloPanel = (id) => (SECCIONES[id] || SECCIONES.resumen)[0];

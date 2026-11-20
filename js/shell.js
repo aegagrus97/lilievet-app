@@ -65,6 +65,7 @@ export const NAV = {
       { titulo: 'Personas', items: [
         { id: 'tutores', label: 'Tutores', count: 'tutores', icon: 'users' },
         { id: 'encuestas', label: 'Encuestas', icon: 'star' },
+        { id: 'demanda', label: 'Zonas sin médico', icon: 'pin' },
       ] },
       { titulo: 'Control', items: [
         { id: 'bitacora', label: 'Bitácora', icon: 'doc' },

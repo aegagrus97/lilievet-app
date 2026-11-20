@@ -1,5 +1,5 @@
 // Solicitar una consulta: servicio → domicilio → horario → médicos (1ª, 2ª y 3ª opción) → confirmar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, ir, useToast } from '../shell.js';
 import { useAccion } from '../cuenta.js';
@@ -12,7 +12,7 @@ export function Solicitar({ perfil }) {
   const toast = useToast();
   const P = perfil.parametros;
   const [paso, setPaso] = useState(1);
-  const [d, setD] = useState({ servicio: 'consulta', mascota: '', especie: 'perro', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false });
+  const [d, setD] = useState({ servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false });
   const [bloques, setBloques] = useState(null);
   const [dia, setDia] = useState(null);
   const [medicos, setMedicos] = useState(null);
@@ -42,7 +42,9 @@ export function Solicitar({ perfil }) {
         Así el médico veterinario puede contactarte cuando tu consulta quede confirmada.<//></div>`;
   }
 
-  const ok1 = d.mascota.trim().length >= 1;
+  const edadMeses = /^\d{1,2}$/.test(String(d.edad)) ? Number(d.edad) * (d.edadUnidad === 'anios' ? 12 : 1) : null;
+  const motivoMin = d.servicio === 'consulta' ? 10 : 0;
+  const ok1 = d.mascota.trim().length >= 1 && d.sexo && edadMeses !== null && edadMeses <= 360 && d.motivo.trim().length >= motivoMin;
   const ok2 = d.alcaldia && d.colonia.trim().length >= 2 && d.calle_numero.trim().length >= 3 && /^\d{5}$/.test(d.cp);
   const elegidos = d.medicos.map((id) => (medicos || []).find((m) => m.id === id)).filter(Boolean);
   const precios = elegidos.map((m) => m.precio);
@@ -51,7 +53,8 @@ export function Solicitar({ perfil }) {
   const alternar = (id) => setD({ ...d, medicos: d.medicos.includes(id) ? d.medicos.filter((x) => x !== id) : d.medicos.length < 3 ? [...d.medicos, id] : d.medicos });
 
   const enviar = async () => {
-    const id = await correr(() => api.crearSolicitud({ ...d, mascota: d.mascota.trim(), no_es_urgencia: 'true', acepta_transferencia: 'true' }));
+    const { edad, edadUnidad, ...resto } = d;
+    const id = await correr(() => api.crearSolicitud({ ...resto, mascota: d.mascota.trim(), motivo: d.motivo.trim(), edad_meses: edadMeses, no_es_urgencia: 'true', acepta_transferencia: 'true' }));
     if (id) { toast('Solicitud enviada.', { sparks: true }); ir('consultas'); }
   };
 
@@ -64,11 +67,25 @@ export function Solicitar({ perfil }) {
       <div class="stack-sm" role="radiogroup" aria-label="Servicio">
         ${Object.keys(SERVICIO).map((k) => html`<${DS.OptionCard} key=${k} name="servicio" title=${SERVICIO[k]} description=${SERVICIO_DESC[k]} checked=${d.servicio === k} onChange=${() => setD({ ...d, servicio: k, inicia_at: null, medicos: [] })} />`)}
       </div>
+      <h3 class="section-title">Tu mascota</h3>
       <${DS.Field} label="Nombre de tu mascota" maxLength=${40} value=${d.mascota} onChange=${set('mascota')} />
-      <div class="row" role="radiogroup" aria-label="Especie">
-        ${Object.keys(ESPECIE).map((k) => html`<${DS.Chip} key=${k} type="radio" name="especie" checked=${d.especie === k} onChange=${() => setD({ ...d, especie: k })}>${ESPECIE[k]}<//>`)}
+      <div class="stack-sm"><span class="small"><b>Especie</b></span>
+        <div class="row" role="radiogroup" aria-label="Especie">
+          ${Object.keys(ESPECIE).map((k) => html`<${DS.Chip} key=${k} type="radio" name="especie" checked=${d.especie === k} onChange=${() => setD({ ...d, especie: k })}>${ESPECIE[k]}<//>`)}
+        </div></div>
+      <div class="stack-sm"><span class="small"><b>Sexo</b></span>
+        <div class="row" role="radiogroup" aria-label="Sexo">
+          ${Object.keys(SEXO).map((k) => html`<${DS.Chip} key=${k} type="radio" name="sexo" checked=${d.sexo === k} onChange=${() => setD({ ...d, sexo: k })}>${SEXO[k]}<//>`)}
+        </div></div>
+      <div class="field-row">
+        <${DS.Field} label="Edad" inputMode="numeric" maxLength=${2} value=${d.edad} onChange=${(e) => setD({ ...d, edad: e.target.value.replace(/\D/g, '').slice(0, 2) })} hint="Si no la sabes exacta, una aproximada." />
+        <${DS.Field} as="select" label="En" value=${d.edadUnidad} onChange=${set('edadUnidad')} options=${[{ value: 'anios', label: 'Años' }, { value: 'meses', label: 'Meses' }]} />
       </div>
-      <p class="small muted">En la solicitud no pedimos síntomas ni historial: eso lo platicas directamente con tu médico veterinario.</p>
+      <${DS.Field} as="textarea" label=${d.servicio === 'consulta' ? '¿Qué le pasa a tu mascota?' : '¿Algo que deba saber el médico? (opcional)'} maxLength=${400} value=${d.motivo} onChange=${set('motivo')}
+        hint=${d.servicio === 'consulta'
+          ? 'En pocas palabras: qué notas y desde cuándo. Lo lee el médico veterinario al recibir tu solicitud para ir preparado. No escribas teléfonos ni tu dirección.'
+          : 'Por ejemplo, su última vacuna o desparasitación. No escribas teléfonos ni tu dirección.'} />
+      <p class="small muted">Si tu mascota tiene dificultad para respirar, convulsiones, sangrado abundante o se envenenó, no esperes: llévala a un hospital veterinario.</p>
       <div class="row"><${DS.Button} disabled=${!ok1} onClick=${() => setPaso(2)}>Continuar<//></div>
     </section>`}
 
@@ -89,7 +106,7 @@ export function Solicitar({ perfil }) {
       ${carga && html`<${DS.Notice} tone="error">${carga}<//>`}
       ${!bloques && !carga && html`<p class="muted">Buscando horarios…</p>`}
       ${bloques && !bloques.length && html`<${DS.EmptyState} who="liebe" title="Aún no hay médicos en tu zona">
-        Por ahora ningún médico veterinario atiende ${d.alcaldia} para este servicio. Estamos sumando más; vuelve a intentar pronto o prueba otra alcaldía cercana.<//>`}
+        Por ahora ningún médico veterinario atiende ${d.alcaldia} para este servicio. Ya anotamos tu búsqueda para sumar médicos en tu zona; vuelve a intentar pronto o prueba otra alcaldía cercana.<//>`}
       ${bloques && bloques.length > 0 && html`
         <div class="row" role="radiogroup" aria-label="Día">
           ${dias.map((x) => html`<${DS.Chip} key=${x} type="radio" name="dia" checked=${dia === x} onChange=${() => setDia(x)}>${fechaDia(x).replace(/ de \d{4}| \d{4}/, '')}<//>`)}
@@ -133,7 +150,9 @@ export function Solicitar({ perfil }) {
 
     ${paso === 5 && html`<section class="box stack">
       <dl class="datos">
-        <dt>Servicio</dt><dd>${SERVICIO[d.servicio]} para ${d.mascota.trim()} (${ESPECIE[d.especie].toLowerCase()})</dd>
+        <dt>Servicio</dt><dd>${SERVICIO[d.servicio]} para ${d.mascota.trim()}</dd>
+        <dt>Mascota</dt><dd>${mascotaTxt({ especie: d.especie, sexo: d.sexo, edad_meses: edadMeses })}</dd>
+        ${d.motivo.trim() && html`<dt>Para el médico</dt><dd>${d.motivo.trim()}</dd>`}
         <dt>Horario</dt><dd>${ventana(d.inicia_at, new Date(new Date(d.inicia_at).getTime() + 72e5))}</dd>
         <dt>Domicilio</dt><dd>${d.calle_numero}, ${d.colonia}, ${d.alcaldia}, C.P. ${d.cp}</dd>
         <dt>Médicos</dt><dd>${elegidos.map((m, i) => html`<div key=${m.id}>${i + 1}. ${m.nombre}</div>`)}</dd>

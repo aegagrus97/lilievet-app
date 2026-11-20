@@ -3,7 +3,8 @@ CREATE OR REPLACE FUNCTION public.srv_avisos_pendientes()
  LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'correo', p.correo, 'telefono', p.telefono, 'nombre', p.nombre, 'titulo', a.titulo, 'cuerpo', a.cuerpo)), '[]'::jsonb)
+AS $function$ select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'correo', p.correo, 'telefono', p.telefono, 'nombre', p.nombre, 'titulo', a.titulo, 'cuerpo', a.cuerpo,
+     'tipo', a.tipo, 'solicitud_id', a.solicitud_id, 'rol', p.rol, 'ya_whatsapp', a.whatsapp_at is not null)), '[]'::jsonb)
    from (select * from app.avisos where correo_at is null and intentos < 5 and created_at > now() - interval '2 days' order by created_at limit 40) a
    join app.perfiles p on p.id = a.destinatario_id $function$
 ;

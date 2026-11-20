@@ -146,6 +146,7 @@ function supabaseApi() {
       pagos: () => rpc('admin_pagos'),
       procesarReembolsos: () => invocar('procesar-reembolsos', {}),
       encuestas: () => rpc('admin_encuestas'),
+      demanda: () => rpc('admin_demanda'),
       bitacora: () => rpc('admin_auditoria'),
       parametros: () => rpc('admin_parametros'),
       guardarParametro: (clave, valor) => rpc('admin_guardar_parametro', { p_clave: clave, p_valor: String(valor) }),

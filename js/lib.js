@@ -125,6 +125,17 @@ export const SERVICIO_DESC = {
   desparasitacion: 'Interna o externa, según indique el médico.',
 };
 export const ESPECIE = { perro: 'Perro', gato: 'Gato' };
+export const SEXO = { macho: 'Macho', hembra: 'Hembra' };
+// Edad guardada en meses: "8 meses", "1 año", "3 años y 6 meses"
+export function edadTxt(m) {
+  if (m === null || m === undefined || m === '') return '';
+  const a = Math.floor(m / 12), r = m % 12;
+  const meses = r === 1 ? '1 mes' : `${r} meses`;
+  if (!a) return m === 0 ? 'menos de 1 mes' : meses;
+  return `${a === 1 ? '1 año' : a + ' años'}${r ? ' y ' + meses : ''}`;
+}
+// "Perro · hembra · 3 años"
+export const mascotaTxt = (s) => [ESPECIE[s.especie], s.sexo && SEXO[s.sexo].toLowerCase(), edadTxt(s.edad_meses)].filter(Boolean).join(' · ');
 export const MEDIO_PAGO = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' };
 export const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const HORAS = [6, 8, 10, 12, 14, 16, 18, 20];

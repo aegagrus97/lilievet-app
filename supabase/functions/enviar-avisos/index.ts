@@ -21,7 +21,17 @@ const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const MAIL_FROM = Deno.env.get("MAIL_FROM") ?? "";              // "LilieVET <avisos@tu-dominio.mx>"
 const WA_TOKEN = Deno.env.get("WHATSAPP_TOKEN") ?? "";
 const WA_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID") ?? "";
-const WA_TEMPLATE = Deno.env.get("WHATSAPP_TEMPLATE") ?? "";    // plantilla con una variable: {{1}} = título del aviso
+const WA_TEMPLATE = Deno.env.get("WHATSAPP_TEMPLATE") ?? "";    // plantilla con dos variables: {{1}} = título del aviso, {{2}} = enlace
+
+// Enlace directo según el aviso: al tutor, su consulta (y si el médico aceptó, directo al cobro);
+// al médico veterinario, sus solicitudes. Los enlaces abren la app: ahí se inicia sesión y se paga en Mercado Pago.
+function enlace(a: { tipo: string; solicitud_id: string | null; rol: string }): string {
+  const base = APP_URL ? (APP_URL.endsWith("/") ? APP_URL : APP_URL + "/") : "";
+  if (!base) return "";
+  if (a.rol === "mvz") return `${base}#/solicitudes`;
+  if (a.solicitud_id) return `${base}#/consultas/${a.solicitud_id}${a.tipo === "aceptada" ? "/pagar" : ""}`;
+  return base;
+}
 
 function iguales(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -41,27 +51,31 @@ Deno.serve(async (req) => {
   if (error) return json(500, { error: "base" });
 
   let correos = 0, whatsapps = 0;
-  for (const a of (lista ?? []) as { id: number; correo: string; telefono: string; nombre: string; titulo: string; cuerpo: string }[]) {
+  type Aviso = { id: number; correo: string; telefono: string; nombre: string; titulo: string; cuerpo: string; tipo: string; solicitud_id: string | null; rol: string; ya_whatsapp: boolean };
+  for (const a of (lista ?? []) as Aviso[]) {
     let okCorreo = false, okWa = false;
+    const url = enlace(a);
+    const accion = a.tipo === "aceptada" ? "Paga la cuota y confirma tu consulta aquí:" : "Entra a LilieVET:";
     if (RESEND_KEY && MAIL_FROM && /^\S+@\S+\.\S+$/.test(a.correo)) {
       try {
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: { "Authorization": `Bearer ${RESEND_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `lv-aviso-${a.id}` },
           // Solo texto plano: nada de lo que escribió una persona se interpreta como HTML
-          body: JSON.stringify({ from: MAIL_FROM, to: [a.correo], subject: `LilieVET · ${a.titulo}`, text: `Hola, ${a.nombre}:\n\n${a.cuerpo}\n\n${APP_URL}\n\nLilieVET · Tu vet a domicilio\nNo es un servicio de urgencias.` }),
+          body: JSON.stringify({ from: MAIL_FROM, to: [a.correo], subject: `LilieVET · ${a.titulo}`, text: `Hola, ${a.nombre}:\n\n${a.cuerpo}\n\n${url ? `${accion}\n${url}\n\n` : ""}LilieVET · Tu vet a domicilio\nNo es un servicio de urgencias.` }),
         });
         okCorreo = r.ok;
       } catch { /* se reintenta en la siguiente vuelta */ }
     }
-    if (WA_TOKEN && WA_PHONE_ID && WA_TEMPLATE && /^[0-9]{10}$/.test(a.telefono)) {
+    // El WhatsApp se manda una sola vez aunque el correo se reintente
+    if (!a.ya_whatsapp && WA_TOKEN && WA_PHONE_ID && WA_TEMPLATE && /^[0-9]{10}$/.test(a.telefono)) {
       try {
         const r = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(WA_PHONE_ID)}/messages`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${WA_TOKEN}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             messaging_product: "whatsapp", to: `52${a.telefono}`, type: "template",
-            template: { name: WA_TEMPLATE, language: { code: "es_MX" }, components: [{ type: "body", parameters: [{ type: "text", text: a.titulo.slice(0, 120) }] }] },
+            template: { name: WA_TEMPLATE, language: { code: "es_MX" }, components: [{ type: "body", parameters: [{ type: "text", text: a.titulo.slice(0, 120) }, { type: "text", text: url || "LilieVET" }] }] },
           }),
         });
         okWa = r.ok;

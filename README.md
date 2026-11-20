@@ -73,7 +73,7 @@ Hoy no hay proveedor de SMS en Supabase, así que el celular se verifica a mano:
 3. Un número de celular dedicado a la API (lo más simple: un chip nuevo).
 4. Nombre visible aprobado y una **plantilla de autenticación** aprobada (con botón "Copiar código").
 5. Método de pago en Meta. Se cobra por mensaje entregado; no hay renta mensual si se usa la API de Meta directo.
-6. Programar el envío (función en Supabase) y cambiar la pantalla de Celular. Con la misma cuenta se pueden mandar los avisos por WhatsApp (la función `enviar-avisos` ya tiene el espacio).
+6. Programar el envío (función en Supabase) y cambiar la pantalla de Celular. Con la misma cuenta se pueden mandar los avisos por WhatsApp: la función `enviar-avisos` ya está lista y solo faltan los secretos `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` y `WHATSAPP_TEMPLATE`. La plantilla (categoría utilidad, es_MX) lleva dos variables: `{{1}}` = título del aviso y `{{2}}` = enlace. Ejemplo: "LilieVET: {{1}}. Entra aquí: {{2}}". Para el aviso "médico aceptó", el enlace abre directo el cobro de la cuota (`#/consultas/<id>/pagar`).
 
 Límite inicial: 250 personas por día; sube con la verificación y el buen uso.
 
