@@ -77,6 +77,20 @@ Hoy no hay proveedor de SMS en Supabase, así que el celular se verifica a mano:
 
 Límite inicial: 250 personas por día; sube con la verificación y el buen uso.
 
+### Pendiente: verificación automática del celular por WhatsApp (20 nov 2026)
+
+Hacer antes que el código por WhatsApp de arriba: es menos trámite. Pasar el número de soporte (o uno nuevo, con chip dedicado) a la API oficial de WhatsApp Business de Meta y crear una función en Supabase que reciba los mensajes entrantes:
+
+- Toma el número del remitente (lo da WhatsApp, no se puede falsificar) y el correo del mensaje ya escrito.
+- Si el número coincide con el de esa cuenta: la marca verificada (dispara el aviso "Tu celular quedó verificado") y contesta automáticamente.
+- Si no coincide: contesta que el número no es el registrado y queda pendiente en el Panel para revisión manual.
+
+No necesita plantilla de autenticación (el tutor escribe primero) y las respuestas dentro de las 24 horas no se cobran. Ojo: si se usa el número de soporte actual, deja de funcionar en la app normal de WhatsApp.
+
+### Pendiente: agente de IA para soporte por WhatsApp (20 nov 2026)
+
+Después de la verificación automática, en el mismo número: un agente que conteste preguntas frecuentes (cómo pedir una consulta, cuánto cuesta, cómo cancelar) y pase a una persona lo que no sepa resolver. Nunca valora síntomas ni da indicaciones médicas, igual que el aviso actual de soporte.
+
 ### Pendiente: diseño del correo de avisos (20 nov 2026)
 
 En el correo que llega (Edge Function `supabase/functions/enviar-avisos`), la línea "No es un servicio de urgencias." del pie se ve mal: va pegada al final del texto plano, sin separación ni formato. Acomodarla mejor (por ejemplo, una versión HTML del correo con un pie separado y más discreto, conservando la versión de texto).
