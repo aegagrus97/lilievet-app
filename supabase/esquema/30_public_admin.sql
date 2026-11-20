@@ -46,14 +46,23 @@ CREATE OR REPLACE FUNCTION public.admin_cuenta(p_cuenta uuid, p_accion text)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ begin
+AS $function$
+declare v_ya timestamptz; v_ok boolean;
+begin
   perform privado.exigir_admin();
   if p_cuenta = auth.uid() and p_accion = 'bloquear' then perform privado.error('No puedes suspender tu propia cuenta.'); end if;
-  if p_accion = 'verificar_telefono' then update app.perfiles set telefono_verificado_at = coalesce(telefono_verificado_at, now()) where id = p_cuenta;
-  elsif p_accion = 'bloquear' then update app.perfiles set bloqueada = true where id = p_cuenta;
-  elsif p_accion = 'desbloquear' then update app.perfiles set bloqueada = false where id = p_cuenta;
+  if p_accion = 'verificar_telefono' then
+    select telefono_verificado_at into v_ya from app.perfiles where id = p_cuenta;
+    update app.perfiles set telefono_verificado_at = coalesce(telefono_verificado_at, now()) where id = p_cuenta;
+    v_ok := found;
+    -- Avisa solo la primera vez (si ya estaba verificado no se repite el aviso)
+    if v_ok and v_ya is null then
+      perform privado.avisar(p_cuenta, 'celular', 'Tu celular quedó verificado', 'Confirmamos tu número. Ya puedes solicitar consultas en LilieVET.');
+    end if;
+  elsif p_accion = 'bloquear' then update app.perfiles set bloqueada = true where id = p_cuenta; v_ok := found;
+  elsif p_accion = 'desbloquear' then update app.perfiles set bloqueada = false where id = p_cuenta; v_ok := found;
   else perform privado.error('Acción no válida.'); end if;
-  if not found then perform privado.error('No encontramos esa cuenta.'); end if;
+  if not v_ok then perform privado.error('No encontramos esa cuenta.'); end if;
   perform privado.auditar('cuenta_' || p_accion, 'perfil', p_cuenta::text);
 end $function$
 ;
