@@ -80,7 +80,11 @@ export function demoApi(quien) {
     salirDeTodos: async () => { location.href = location.pathname; },
     perfil: () => espera(perfil),
     guardarNombre: async (n, a) => { perfil.nombre = n; perfil.apellidos = a; },
-    avisos: () => espera([
+    avisos: () => espera(quien === 'mvz-nuevo' ? [
+      { id: 3, tipo: 'cedula', titulo: 'Revisa tu número de cédula', cuerpo: 'No pudimos verificar tu cédula profesional en el Registro Nacional de Profesionistas. Escríbela de nuevo en Servicios y guarda los cambios.', leido_at: null, created_at: en(-1) },
+    ] : quien.startsWith('mvz') ? [
+      { id: 4, tipo: 'solicitud_nueva', titulo: 'Tienes una solicitud nueva', cuerpo: 'Entra a LilieVET para aceptarla o rechazarla.', leido_at: null, created_at: en(-1) },
+    ] : [
       { id: 1, tipo: 'aceptada', titulo: 'Un médico veterinario aceptó tu solicitud', cuerpo: 'Paga la cuota de servicio para confirmar tu consulta.', leido_at: null, created_at: en(-1) },
       { id: 2, tipo: 'reagenda', titulo: 'El médico veterinario propone otro horario', cuerpo: 'Entra a tus consultas para aceptarlo o conservar el horario actual.', leido_at: null, created_at: en(-4) },
     ]),

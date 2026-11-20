@@ -1,8 +1,8 @@
 // Solicitudes del médico veterinario: aceptar o rechazar, consultas confirmadas con contacto, cancelar y reagendar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
-import { useAccion, FormReporte } from '../cuenta.js';
+import { Caja, useAccion, FormReporte } from '../cuenta.js';
 
 const H = 36e5;
 
@@ -18,12 +18,30 @@ export function pendientesAlta(perfil) {
   ];
 }
 
-function Alta({ perfil }) {
+// El Panel pidió corregir la cédula: la base la borra y deja un aviso de tipo 'cedula'
+// (los avisos anteriores a este cambio llegan como tipo 'alta' con este título)
+const pideCedula = (a) => a.tipo === 'cedula' || /c[eé]dula/i.test(a.titulo);
+
+// Avisos de LilieVET para el médico veterinario (alta, cédula, solicitudes nuevas…)
+function Avisos({ lista }) {
+  if (!lista) return null;
+  return html`<${Caja} titulo="Avisos">
+    ${!lista.length && html`<p class="small muted">Aquí verás los mensajes de LilieVET sobre tu cuenta y tus solicitudes.</p>`}
+    <ul class="hist">${lista.slice(0, 6).map((a) => html`<li key=${a.id}>
+      <b class="small" style=${{ fontWeight: 600 }}>${!a.leido_at && html`<${DS.Badge} tone="nuevo">Nuevo<//> `}${a.titulo}</b>
+      <span class="small muted">${a.cuerpo}</span><span class="small muted">${fechaHora(a.created_at)}</span></li>`)}</ul>
+  <//>`;
+}
+
+function Alta({ perfil, avisos }) {
   const m = perfil.mvz;
   const lista = pendientesAlta(perfil);
   const completo = lista.every((x) => x[1]);
+  const corregir = !m.cedula && !m.cedula_verificada_at && (avisos || []).some(pideCedula);
   return html`<div class="page page-narrow">
     <${PageHead} titulo="Tu alta" sub="Revisamos cada cuenta antes de que reciba solicitudes." />
+    ${corregir && m.estado !== 'suspendido' && html`<${DS.Notice} tone="error" title="Te pedimos corregir tu número de cédula.">
+      No pudimos verificarla en el Registro Nacional de Profesionistas. Escríbela de nuevo en Servicios y guarda los cambios. <a href="#/servicios">Corregir cédula</a><//>`}
     ${m.estado === 'suspendido'
       ? html`<${DS.Notice} tone="error" title="Tu cuenta está en pausa.">Por ahora no recibes solicitudes. Escríbenos para revisarla.<//>`
       : completo
@@ -35,6 +53,7 @@ function Alta({ perfil }) {
       <li class=${m.cedula_verificada_at ? 'ok' : ''}><${Icon} name="shield" /><div><b class="small" style=${{ fontWeight: 600 }}>Verificación de cédula e identidad por LilieVET</b></div>
         <${DS.Badge} tone=${m.cedula_verificada_at ? 'verificado' : 'pendiente'}>${m.cedula_verificada_at ? 'Verificada' : 'Pendiente'}<//></li>
     </ul></section>
+    <${Avisos} lista=${avisos} />
   </div>`;
 }
 
@@ -127,13 +146,26 @@ function Consulta({ s, recargar }) {
   </article>`;
 }
 
-export function SolicitudesMvz({ perfil, onConteos }) {
+export function SolicitudesMvz({ perfil, onPerfil, onConteos }) {
   const { datos, error, recargar } = useDatos(() => api.solicitudesMvz(), []);
-  useEffect(() => { const t = setInterval(recargar, 60000); return () => clearInterval(t); }, [recargar]);
+  // Los avisos se leen una vez al entrar y cada minuto; leerlos los marca como leídos en la base,
+  // así que se conserva cuáles venían sin leer para resaltarlos mientras sigas en la pantalla.
+  const [avisos, setAvisos] = useState(null);
+  const leerAvisos = () => api.avisos().then((nuevos) => setAvisos((antes) => {
+    const sinLeer = new Set((antes || []).filter((a) => !a.leido_at).map((a) => a.id));
+    return nuevos.map((a) => (sinLeer.has(a.id) ? { ...a, leido_at: null } : a));
+  })).catch(() => {});
+  // Al entrar y cada minuto: solicitudes, avisos y tu perfil (por si el Panel cambió algo de tu cuenta)
+  useEffect(() => {
+    leerAvisos();
+    const t = setInterval(() => { recargar(); leerAvisos(); onPerfil && onPerfil().catch(() => {}); }, 60000);
+    return () => clearInterval(t);
+  }, [recargar]);
+  useEffect(() => { onPerfil && onPerfil().catch(() => {}); }, []);
   const ofertas = (datos || []).filter((s) => s.oferta?.estado === 'pendiente' && s.estado === 'buscando');
   useEffect(() => { onConteos && onConteos({ porResponder: ofertas.length }); }, [ofertas.length]);
 
-  if (perfil.mvz.estado !== 'aprobado') return html`<${Alta} perfil=${perfil} />`;
+  if (perfil.mvz.estado !== 'aprobado') return html`<${Alta} perfil=${perfil} avisos=${avisos} />`;
   if (error) return html`<div class="page page-narrow"><${ErrorCarga} error=${error} onReintentar=${recargar} /></div>`;
   if (!datos) return html`<${Cargando} />`;
   const m = perfil.mvz;
@@ -153,6 +185,7 @@ export function SolicitudesMvz({ perfil, onConteos }) {
     ${proximas.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} />`)}
     ${pasadas.length > 0 && html`<h2 class="section-title">Anteriores</h2>`}
     ${pasadas.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} />`)}
+    <${Avisos} lista=${avisos} />
     <p class="small muted">LilieVET no te cobra nada, no te paga nada y no toca el dinero de la consulta: el tutor te paga directo por los medios que aceptes.</p>
   </div>`;
 }

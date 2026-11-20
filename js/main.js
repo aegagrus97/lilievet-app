@@ -40,7 +40,7 @@ function Vista({ vista, seccion, sub, perfil, onPerfil, setConteos }) {
     if (seccion === 'agenda') return html`<${Agenda} perfil=${perfil} onPerfil=${onPerfil} />`;
     if (seccion === 'servicios') return html`<${Servicios} perfil=${perfil} onPerfil=${onPerfil} />`;
     if (seccion === 'perfil') return html`<${Perfil} perfil=${perfil} onPerfil=${onPerfil} />`;
-    return html`<${SolicitudesMvz} perfil=${perfil} onConteos=${setConteos} />`;
+    return html`<${SolicitudesMvz} perfil=${perfil} onPerfil=${onPerfil} onConteos=${setConteos} />`;
   }
   // El Panel exige doble factor. Aunque alguien se salte esta pantalla, la base rechaza cada función.
   if (!perfil.panel_abierto) return html`<${PuertaPanel} onAbierto=${onPerfil} />`;

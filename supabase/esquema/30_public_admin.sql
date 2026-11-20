@@ -87,8 +87,9 @@ begin
     if m.cedula_verificada_at is null then perform privado.error('Primero hay que aprobar la cuenta.'); end if;
     update app.mvz set estado = 'aprobado' where id = m.id;
   elsif p_accion = 'corregir_cedula' then
+    if m.cedula is null then perform privado.error('Ya se le pidió corregir su cédula; falta que la vuelva a escribir.'); end if;
     update app.mvz set estado = 'pendiente', cedula = null, cedula_verificada_at = null where id = m.id;
-    perform privado.avisar(m.id, 'alta', 'Revisa tu número de cédula', 'No pudimos verificar tu cédula profesional. Corrígela en tu Perfil.');
+    perform privado.avisar(m.id, 'cedula', 'Revisa tu número de cédula', 'No pudimos verificar tu cédula profesional en el Registro Nacional de Profesionistas. Escríbela de nuevo en Servicios y guarda los cambios.');
   else
     perform privado.error('Acción no válida.');
   end if;
