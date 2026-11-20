@@ -58,6 +58,17 @@ export function Solicitar({ perfil }) {
     }).catch((e) => setCarga(e.message));
   }, [paso, d.inicia_at]);
 
+  // Máximo tres solicitudes en curso (regla de la base): se avisa desde el inicio, no hasta el último paso
+  const [enCurso, setEnCurso] = useState(0);
+  useEffect(() => {
+    api.misSolicitudes().then((l) => setEnCurso(l.filter((x) => ['buscando', 'por_pagar', 'confirmada'].includes(x.estado)).length)).catch(() => {});
+  }, []);
+  if (enCurso >= 3) {
+    return html`<div class="page page-narrow"><${PageHead} titulo="Solicitar consulta" />
+      <${DS.Notice} title="Ya tienes tres solicitudes en curso.">
+        Es el máximo al mismo tiempo. Cuando alguna se confirme y se realice, o si cancelas una, podrás pedir otra. <a href="#/consultas">Ver mis consultas</a><//></div>`;
+  }
+
   if (P.exigir_telefono && !perfil.telefono_verificado) {
     return html`<div class="page page-narrow"><${PageHead} titulo="Solicitar consulta" />
       <${DS.EmptyState} who="lilie" title="Primero verifica tu celular" action=${html`<${DS.Button} block onClick=${() => ir('perfil')}>Ir a mi perfil<//>`}>
