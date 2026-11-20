@@ -64,6 +64,19 @@ Los avisos por correo salen por **Resend** (cuenta abierta con catiamimbrera@gma
 2. En Supabase → **Edge Functions → Secrets**, cambiar `MAIL_FROM` a `LilieVET <avisos@tudominio.mx>`. La clave `RESEND_API_KEY` no cambia.
 3. Probar con una cuenta que use otro correo (por ejemplo, la veterinaria de prueba).
 
+### Pendiente: verificar el celular con código por WhatsApp (20 nov 2026)
+
+Hoy no hay proveedor de SMS en Supabase, así que el celular se verifica a mano (Panel → Tutores → "Marcar verificado"; los médicos quedan verificados al aprobarlos). Plan: mandar el código por WhatsApp directo con la API de Meta (sin Twilio). Requisitos, en orden:
+
+1. Dominio propio con una página web sencilla de LilieVET (también sirve para el remitente de correo, ver arriba).
+2. Portafolio en Meta Business (business.facebook.com) y **verificación del negocio**: documentos con el mismo nombre legal y domicilio (p. ej. constancia de situación fiscal) y, de preferencia, un correo del dominio.
+3. Un número de celular dedicado a la API (lo más simple: un chip nuevo).
+4. Nombre visible aprobado y una **plantilla de autenticación** aprobada (con botón "Copiar código").
+5. Método de pago en Meta. Se cobra por mensaje entregado; no hay renta mensual si se usa la API de Meta directo.
+6. Programar el envío (función en Supabase) y cambiar la pantalla de Celular. Con la misma cuenta se pueden mandar los avisos por WhatsApp (la función `enviar-avisos` ya tiene el espacio).
+
+Límite inicial: 250 personas por día; sube con la verificación y el buen uso.
+
 ### Pendiente: diseño del correo de avisos (20 nov 2026)
 
 En el correo que llega (Edge Function `supabase/functions/enviar-avisos`), la línea "No es un servicio de urgencias." del pie se ve mal: va pegada al final del texto plano, sin separación ni formato. Acomodarla mejor (por ejemplo, una versión HTML del correo con un pie separado y más discreto, conservando la versión de texto).
