@@ -11,12 +11,15 @@ export function Caja({ titulo, sub, extra, children }) {
   </section>`;
 }
 
-// Envuelve una acción: estado de espera y error visible
+// Envuelve una acción: estado de espera y error visible.
+// Si la acción sale bien devuelve su resultado, o `true` cuando no regresa nada: las funciones de la
+// base que no devuelven datos (guardar, bloquear, aprobar…) llegan como `null` desde Supabase, y un
+// `null` aquí hacía creer a la pantalla que la acción había fallado (no recargaba ni avisaba).
 export function useAccion() {
   const [st, setSt] = useState({ ocupado: false, error: null });
   const correr = async (fn) => {
     setSt({ ocupado: true, error: null });
-    try { const r = await fn(); setSt({ ocupado: false, error: null }); return r === undefined ? true : r; }
+    try { const r = await fn(); setSt({ ocupado: false, error: null }); return r ?? true; }
     catch (e) { setSt({ ocupado: false, error: e.message || 'Algo salió mal. Intenta de nuevo.' }); return false; }
   };
   return [st, correr, () => setSt({ ocupado: false, error: null })];
