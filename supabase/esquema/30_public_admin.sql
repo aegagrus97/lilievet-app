@@ -284,6 +284,7 @@ AS $function$ begin
     'medicos_pendientes', (select count(*) from app.mvz where estado = 'pendiente' and cedula is not null),
     'medicos_aprobados', (select count(*) from app.mvz where estado = 'aprobado'),
     'tutores', (select count(*) from app.perfiles where rol = 'tutor'),
+    'tutores_sin_verificar', (select count(*) from app.perfiles where rol = 'tutor' and not bloqueada and telefono_verificado_at is null),
     'reportes_abiertos', (select count(*) from app.reportes where estado = 'abierto'),
     'reembolsos_pendientes', (select count(*) from app.pagos where estado = 'reembolso_pendiente'),
     'buscando', (select count(*) from app.solicitudes where estado = 'buscando'),

@@ -25,35 +25,37 @@ export function useAccion() {
   return [st, correr, () => setSt({ ocupado: false, error: null })];
 }
 
+// Celular: por ahora se verifica a mano. El tutor nos escribe por WhatsApp desde su número
+// (con un mensaje ya escrito que incluye su correo) y en el Panel se marca como verificado.
+// A los médicos veterinarios se les confirma en la videollamada de alta.
+// Cuando haya código automático (ver README, "verificar el celular con código por WhatsApp"),
+// api.pedirCodigo / api.verificarCodigo siguen disponibles.
+const cfgApp = window.LV_CONFIG || {};
+const SOPORTE_WA = String(cfgApp.soporteWhatsapp || '').replace(/\D/g, '');
+const enlaceVerificar = (correo) => `https://wa.me/52${SOPORTE_WA}?text=${encodeURIComponent(`Hola, quiero verificar mi cuenta de LilieVET. Mi correo es ${correo}`)}`;
+
 function Celular({ perfil, onPerfil }) {
   const toast = useToast();
   const [tel, setTel] = useState(perfil.telefono);
-  const [paso, setPaso] = useState('ver');           // ver | codigo
-  const [codigo, setCodigo] = useState('');
   const [st, correr] = useAccion();
-  const pedir = async () => { if (await correr(() => api.pedirCodigo(tel))) setPaso('codigo'); };
-  const verificar = async () => {
-    const ok = await correr(() => api.verificarCodigo(tel, codigo));
-    if (ok) { await onPerfil(); setPaso('ver'); setCodigo(''); toast('Celular verificado.', { sparks: true }); }
-  };
   const telOk = soloDigitos(tel).length === 10;
   const cambio = soloDigitos(tel) !== perfil.telefono;
+  const esMvz = perfil.rol === 'mvz';
+  const guardar = async () => {
+    if (await correr(() => api.guardarTelefono(tel))) { await onPerfil(); toast(esMvz ? 'Celular guardado.' : 'Celular guardado. Ahora confírmalo por WhatsApp.'); }
+  };
   return html`<${Caja} titulo="Celular" sub="Lo usamos para avisarte de tus consultas. La otra parte solo lo ve cuando la consulta queda confirmada."
       extra=${perfil.telefono_verificado ? html`<${DS.Badge} tone="verificado">Verificado<//>` : html`<${DS.Badge} tone="pendiente">Sin verificar<//>`}>
     <div class="stack">
-      ${paso === 'ver' && html`
-        <${DS.Field} label="Celular a 10 dígitos" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength=${14} value=${tel} onChange=${(e) => setTel(e.target.value)} />
-        ${(!perfil.telefono_verificado || cambio) && html`<div class="row">
-          <${DS.Button} onClick=${pedir} disabled=${st.ocupado || !telOk}>${st.ocupado ? 'Enviando…' : 'Enviar código por SMS'}<//>
-          ${cambio && html`<span class="small muted">Si cambias de número, hay que verificarlo otra vez.</span>`}
-        </div>`}`}
-      ${paso === 'codigo' && html`
-        <${DS.Notice} tone="info">Te enviamos un código por SMS al ${telBonito(tel)}. Vence en unos minutos.<//>
-        <${DS.Field} label="Código de 6 dígitos" inputMode="numeric" autoComplete="one-time-code" maxLength=${6} value=${codigo} onChange=${(e) => setCodigo(soloDigitos(e.target.value))} />
-        <div class="row">
-          <${DS.Button} onClick=${verificar} disabled=${st.ocupado || codigo.length !== 6}>${st.ocupado ? 'Verificando…' : 'Verificar'}<//>
-          <${DS.Button} variant="ghost" onClick=${() => setPaso('ver')}>Cambiar número<//>
-        </div>`}
+      <${DS.Field} label="Celular a 10 dígitos" type="tel" inputMode="numeric" autoComplete="tel-national" maxLength=${14} value=${tel} onChange=${(e) => setTel(e.target.value)} />
+      ${cambio && html`<div class="row">
+        <${DS.Button} onClick=${guardar} disabled=${st.ocupado || !telOk}>${st.ocupado ? 'Guardando…' : 'Guardar celular'}<//>
+        ${perfil.telefono_verificado && html`<span class="small muted">Si cambias de número, hay que verificarlo otra vez.</span>`}
+      </div>`}
+      ${!cambio && !perfil.telefono_verificado && (esMvz
+        ? html`<${DS.Notice} tone="info">Lo confirmamos en la videollamada de verificación de tu cuenta.<//>`
+        : html`<${DS.Notice} tone="info" title="Confirma tu celular.">Mándanos un mensaje por WhatsApp desde este número para verificarlo. Cuando lo confirmemos podrás solicitar consultas.<//>
+          ${SOPORTE_WA && html`<div><a class="lv-btn lv-btn-primary" href=${enlaceVerificar(perfil.correo)} target="_blank" rel="noopener noreferrer">Enviar mensaje por WhatsApp</a></div>`}`)}
       ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
     </div>
   <//>`;

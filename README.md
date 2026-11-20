@@ -66,7 +66,7 @@ Los avisos por correo salen por **Resend** (cuenta abierta con catiamimbrera@gma
 
 ### Pendiente: verificar el celular con código por WhatsApp (20 nov 2026)
 
-Hoy no hay proveedor de SMS en Supabase, así que el celular se verifica a mano (Panel → Tutores → "Marcar verificado"; los médicos quedan verificados al aprobarlos). Plan: mandar el código por WhatsApp directo con la API de Meta (sin Twilio). Requisitos, en orden:
+Hoy no hay proveedor de SMS en Supabase, así que el celular se verifica a mano: el tutor toca "Enviar mensaje por WhatsApp" en su Perfil (abre WhatsApp de soporte con un mensaje que trae su correo), se revisa que el número coincida y se marca en Panel → Tutores → "Marcar verificado". Los médicos quedan verificados al aprobarlos. Plan: mandar el código por WhatsApp directo con la API de Meta (sin Twilio). Requisitos, en orden:
 
 1. Dominio propio con una página web sencilla de LilieVET (también sirve para el remitente de correo, ver arriba).
 2. Portafolio en Meta Business (business.facebook.com) y **verificación del negocio**: documentos con el mismo nombre legal y domicilio (p. ej. constancia de situación fiscal) y, de preferencia, un correo del dominio.

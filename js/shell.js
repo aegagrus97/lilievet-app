@@ -63,7 +63,7 @@ export const NAV = {
         { id: 'pagos', label: 'Cuotas y reembolsos', icon: 'wallet', count: 'reembolsos' },
       ] },
       { titulo: 'Personas', items: [
-        { id: 'tutores', label: 'Tutores', icon: 'users' },
+        { id: 'tutores', label: 'Tutores', count: 'tutores', icon: 'users' },
         { id: 'encuestas', label: 'Encuestas', icon: 'star' },
       ] },
       { titulo: 'Control', items: [

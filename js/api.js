@@ -78,7 +78,9 @@ function supabaseApi() {
     guardarNombre: (nombre, apellidos) => rpc('guardar_nombre', { p_nombre: nombre, p_apellidos: apellidos }),
     avisos: () => rpc('mis_avisos'),
 
-    // Celular verificado: Supabase Auth manda un código por SMS y lo comprueba
+    // Celular: guardarlo (queda sin verificar hasta que el Panel lo confirme)
+    guardarTelefono: (telefono) => rpc('cambiar_telefono', { p_telefono: soloDigitos(telefono) }),
+    // Celular verificado con código (aún sin proveedor de SMS/WhatsApp; no se usa en la app por ahora)
     async pedirCodigo(telefono) {
       const tel = soloDigitos(telefono);
       await rpc('cambiar_telefono', { p_telefono: tel });

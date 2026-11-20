@@ -52,7 +52,7 @@ const estadoBadge = (e) => html`<${DS.Badge} tone=${(ESTADO[e] || ['neutral'])[0
 
 // ───────── Resumen ─────────
 function ResumenVista({ r, onConteos }) {
-  useEffect(() => { onConteos({ medicos: r.medicos_pendientes, reportes: r.reportes_abiertos, reembolsos: r.reembolsos_pendientes }); }, [r]);
+  useEffect(() => { onConteos({ medicos: r.medicos_pendientes, reportes: r.reportes_abiertos, reembolsos: r.reembolsos_pendientes, tutores: r.tutores_sin_verificar }); }, [r]);
   return html`
       <div class="kpis">
         <div class="kpi"><span>Esperando médico</span><b>${r.buscando}</b></div>
@@ -70,6 +70,7 @@ function ResumenVista({ r, onConteos }) {
         <ul class="checklist">
           <li class=${r.medicos_pendientes ? 'falta' : 'ok'}><${Icon} name="shield" /><div><b class="small" style=${{ fontWeight: 600 }}>Médicos veterinarios por verificar</b></div><a href="#/medicos">${r.medicos_pendientes}</a></li>
           <li class=${r.reportes_abiertos ? 'falta' : 'ok'}><${Icon} name="chat" /><div><b class="small" style=${{ fontWeight: 600 }}>Reportes abiertos</b></div><a href="#/reportes">${r.reportes_abiertos}</a></li>
+          <li class=${r.tutores_sin_verificar ? 'falta' : 'ok'}><${Icon} name="user" /><div><b class="small" style=${{ fontWeight: 600 }}>Tutores con celular por verificar</b></div><a href="#/tutores">${r.tutores_sin_verificar || 0}</a></li>
           <li class=${r.reembolsos_pendientes ? 'falta' : 'ok'}><${Icon} name="wallet" /><div><b class="small" style=${{ fontWeight: 600 }}>Reembolsos por enviar</b></div><a href="#/pagos">${r.reembolsos_pendientes}</a></li>
         </ul>
       <//>`;
@@ -201,26 +202,36 @@ function Pagos() {
 }
 
 // ───────── Tutores ─────────
-function Tutores() {
+const sinVerificar = (t) => !t.telefono_verificado_at && !t.bloqueada;
+function ConteoTutores({ lista, onConteos }) {
+  const n = lista.filter(sinVerificar).length;
+  useEffect(() => { onConteos && onConteos((c) => ({ ...c, tutores: n })); }, [n]);
+  return null;
+}
+function Tutores({ onConteos }) {
   const toast = useToast();
   const [st, correr] = useAccion();
   const [porBorrar, setPorBorrar] = useState(null);
-  return html`<${Lista} fn=${() => api.admin.tutores()}>${(lista, recargar) => {
+  return html`<${Lista} fn=${() => api.admin.tutores()}>${(todos, recargar) => {
     const hacer = async (id, accion, txt) => { if (await correr(() => api.admin.cuenta(id, accion))) { toast(txt); recargar(); } };
-    return html`<${Caja} titulo="Tutores">
+    // Primero los que esperan verificación de celular
+    const lista = [...todos.filter(sinVerificar), ...todos.filter((t) => !sinVerificar(t))];
+    const pendientes = todos.filter(sinVerificar).length;
+    return html`<${Caja} titulo="Tutores" sub=${pendientes ? `${pendientes} con celular por verificar` : undefined}>
+      <${ConteoTutores} lista=${todos} onConteos=${onConteos} />
       ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
       ${!lista.length && html`<${Vacio}>Aún no se registra ningún tutor.<//>`}
       ${lista.length > 0 && html`<${Tabla} cab=${['Nombre', 'Contacto', 'Celular', 'Solicitudes', 'Alta', '']}>
         ${lista.map((t) => html`<tr key=${t.id}><td>${t.nombre} ${t.apellidos}${t.bloqueada ? html` <${DS.Badge} tone="error">Suspendida<//>` : ''}</td>
           <td class="small">${t.correo}<br />${telBonito(t.telefono)}</td>
-          <td>${t.telefono_verificado_at ? html`<${DS.Badge} tone="verificado">Verificado<//>` : html`<button type="button" class="linkish" disabled=${st.ocupado} onClick=${() => hacer(t.id, 'verificar_telefono', 'Celular marcado como verificado.')}>Marcar verificado</button>`}</td>
+          <td>${t.telefono_verificado_at ? html`<${DS.Badge} tone="verificado">Verificado<//>` : html`<${DS.Badge} tone="pendiente">Por verificar<//><br /><button type="button" class="linkish" disabled=${st.ocupado} onClick=${() => hacer(t.id, 'verificar_telefono', 'Celular marcado como verificado.')}>Marcar verificado</button>`}</td>
           <td class="num">${t.solicitudes}</td><td class="nw">${fechaDia(diaISO(t.created_at))}</td>
           <td><button type="button" class="linkish" disabled=${st.ocupado} onClick=${() => hacer(t.id, t.bloqueada ? 'desbloquear' : 'bloquear', t.bloqueada ? 'Cuenta reactivada.' : 'Cuenta suspendida.')}>${t.bloqueada ? 'Reactivar' : 'Suspender'}</button>
             ${' · '}${porBorrar === t.id
               ? html`<button type="button" class="linkish" style=${{ color: 'var(--danger)' }} disabled=${st.ocupado} onClick=${async () => { if (await correr(() => api.admin.eliminarDatos(t.id))) { toast('Datos personales eliminados.'); recargar(); } setPorBorrar(null); }}>Confirmar: eliminar sus datos para siempre</button>`
               : html`<button type="button" class="linkish" onClick=${() => setPorBorrar(t.id)}>Eliminar datos</button>`}</td></tr>`)}
       <//>`}
-      <p class="small muted" style=${{ marginTop: 12 }}>“Marcar verificado” es para cuando confirmaste el número por WhatsApp o llamada y el SMS no le llegó. “Eliminar datos” atiende una solicitud de eliminación de datos personales: borra nombre, contacto y domicilios, cierra la cuenta y no se puede deshacer.</p>
+      <p class="small muted" style=${{ marginTop: 12 }}>“Marcar verificado”: úsalo cuando el tutor te escriba por WhatsApp desde el mismo número que aparece aquí (el mensaje trae su correo para encontrarlo). “Eliminar datos” atiende una solicitud de eliminación de datos personales: borra nombre, contacto y domicilios, cierra la cuenta y no se puede deshacer.</p>
     <//>`;
   }}<//>`;
 }
