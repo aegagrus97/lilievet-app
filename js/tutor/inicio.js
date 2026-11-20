@@ -1,17 +1,70 @@
-// Inicio del tutor: qué sigue, avisos y cómo funciona.
-import { html, DS, Icon, ventana, SERVICIO, ESTADO, nombreCorto, fechaHora, falta, money } from '../lib.js';
+// Inicio del tutor: panorama de su cuenta (qué sigue con cada consulta) y cómo funciona.
+import { html, DS, Icon, SERVICIO, ventana, nombreCorto, fechaDia, diaISO, falta, money } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, ErrorCarga } from '../shell.js';
 import { Caja } from '../cuenta.js';
 import { AvisoUrgencias } from '../legal.js';
+import { prellenarSolicitud } from './solicitar.js';
 
 const VIVAS = ['buscando', 'por_pagar', 'confirmada'];
+const H = 36e5;
+const buscarDeNuevo = (s) => { prellenarSolicitud(s); ir('solicitar'); };
+
+// Una línea del panorama: qué pasa, el detalle y qué puede hacer
+const Linea = ({ icono, tono, titulo, detalle, accion }) => html`<li class=${'panorama-item' + (tono ? ' ' + tono : '')}>
+  <${Icon} name=${icono} />
+  <div class="stack-sm" style=${{ flex: 1 }}><b>${titulo}</b>${detalle && html`<span class="small muted">${detalle}</span>`}</div>
+  ${accion}
+</li>`;
+
+function lineas(sols, perfil) {
+  const out = [];
+  const vivas = sols.filter((s) => VIVAS.includes(s.estado)).sort((a, b) => new Date(a.inicia_at) - new Date(b.inicia_at));
+  for (const s of vivas) {
+    const que = `${SERVICIO[s.servicio]} para ${s.mascota}`;
+    if (s.estado === 'por_pagar') {
+      out.push({ k: s.id, icono: 'wallet', tono: 'atencion', titulo: 'Tu vet aceptó y estamos esperando tu pago.',
+        detalle: `${que} · ${ventana(s.inicia_at, s.termina_at)}. Tienes ${falta(s.pagar_antes_de)} para pagar la cuota de ${money(s.cuota)}; si no, el horario se libera.`,
+        accion: html`<${DS.Button} size="sm" onClick=${() => ir(`consultas/${s.id}/pagar`)}>Pagar y confirmar<//>` });
+    } else if (s.estado === 'confirmada') {
+      out.push({ k: s.id, icono: 'cal', tono: s.reagenda_propuesta_at ? 'atencion' : 'ok',
+        titulo: s.reagenda_propuesta_at ? 'Tu vet propone cambiar el horario de tu consulta.' : `Tienes una consulta agendada para ${ventana(s.inicia_at, s.termina_at)}.`,
+        detalle: `${que}${s.medico ? ` con ${s.medico.nombre}` : ''}.${s.reagenda_propuesta_at ? ' Acepta el cambio o conserva el horario.' : ''}`,
+        accion: html`<${DS.Button} size="sm" variant=${s.reagenda_propuesta_at ? 'primary' : 'secondary'} onClick=${() => ir('consultas/' + s.id)}>${s.reagenda_propuesta_at ? 'Revisar' : 'Ver detalle'}<//>` });
+    } else {
+      const op = (s.opciones || []).find((o) => o.estado === 'pendiente');
+      out.push({ k: s.id, icono: 'clock', titulo: 'Estamos esperando que un vet responda tu solicitud.',
+        detalle: `${que} · ${ventana(s.inicia_at, s.termina_at)}.${op ? ` La tiene ${op.nombre}${op.vence_at ? `; le quedan ${falta(op.vence_at)} para responder` : ''}.` : ''}`,
+        accion: html`<${DS.Button} size="sm" variant="secondary" onClick=${() => ir('consultas/' + s.id)}>Ver detalle<//>` });
+    }
+  }
+  // La última solicitud que se quedó sin médico o venció (de los últimos 3 días), si después no pidió otra
+  const ultimaViva = Math.max(0, ...vivas.map((s) => new Date(s.created_at).getTime()));
+  const caida = sols.filter((s) => ['sin_medico', 'vencida'].includes(s.estado) && Date.now() - new Date(s.created_at) < 3 * 24 * H
+    && new Date(s.created_at).getTime() > ultimaViva).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  if (caida) {
+    out.push({ k: caida.id, icono: 'alert', tono: 'atencion',
+      titulo: caida.estado === 'sin_medico' ? 'No encontramos vets disponibles. ¿Buscamos de nuevo?' : 'Tu solicitud venció porque no se pagó a tiempo. ¿La buscamos de nuevo?',
+      detalle: `${SERVICIO[caida.servicio]} para ${caida.mascota}, ${fechaDia(diaISO(caida.inicia_at))}. No se te cobró nada. Usamos los mismos datos; solo eliges otro horario.`,
+      accion: html`<${DS.Button} size="sm" onClick=${() => buscarDeNuevo(caida)}>Buscar de nuevo<//>` });
+  }
+  for (const s of sols.filter((x) => x.encuesta_pendiente).slice(0, 1)) {
+    out.push({ k: 'enc-' + s.id, icono: 'star', titulo: `¿Cómo te fue en la consulta de ${s.mascota}?`,
+      detalle: 'Tu respuesta es privada y nos ayuda a mejorar el servicio.',
+      accion: html`<${DS.Button} size="sm" variant="secondary" onClick=${() => ir('consultas/' + s.id)}>Responder<//>` });
+  }
+  if (perfil.avisos_sin_leer > 0) {
+    out.push({ k: 'avisos', icono: 'bell', titulo: perfil.avisos_sin_leer === 1 ? 'Tienes 1 aviso nuevo.' : `Tienes ${perfil.avisos_sin_leer} avisos nuevos.`,
+      accion: html`<${DS.Button} size="sm" variant="ghost" onClick=${() => ir('avisos')}>Ver avisos<//>` });
+  }
+  return out;
+}
 
 export function InicioTutor({ perfil }) {
   const sols = useDatos(() => api.misSolicitudes(), []);
-  const avisos = useDatos(() => api.avisos(), []);
-  const vivas = (sols.datos || []).filter((s) => VIVAS.includes(s.estado)).sort((a, b) => new Date(a.inicia_at) - new Date(b.inicia_at));
   const cuota = perfil.parametros.cuota;
+  const lista = sols.datos ? lineas(sols.datos, perfil) : [];
+  const hayVivas = (sols.datos || []).some((s) => VIVAS.includes(s.estado));
 
   return html`<div class="page">
     <${PageHead} titulo=${`Hola, ${nombreCorto(perfil)}`} sub="Tu vet a domicilio.">
@@ -21,26 +74,16 @@ export function InicioTutor({ perfil }) {
     <div class="grid-2">
       <div class="stack">
         ${sols.error && html`<${ErrorCarga} error=${sols.error} onReintentar=${sols.recargar} />`}
-        ${sols.datos && !vivas.length && html`<${DS.EmptyState} who="ambos" title="¿Agendamos una consulta?"
+        ${!sols.datos && !sols.error && html`<p class="muted">Revisando tu cuenta…</p>`}
+        ${lista.length > 0 && html`<${Caja} titulo="Tu cuenta hoy">
+          <ul class="panorama">${lista.map((x) => html`<${Linea} key=${x.k} ...${x} />`)}</ul>
+        <//>`}
+        ${sols.datos && !hayVivas && html`<${DS.EmptyState} who="ambos" title="¿Agendamos una consulta?"
             action=${html`<${DS.Button} block onClick=${() => ir('solicitar')}>Solicitar consulta<//>`}>
           Elige el servicio, el horario y hasta tres médicos veterinarios. Solo pagas la cuota de servicio cuando uno acepta.<//>`}
-        ${vivas.map((s) => html`<article class="box" key=${s.id}>
-          <div class="spread"><strong class="section-title">${SERVICIO[s.servicio]} para ${s.mascota}</strong><${DS.Badge} tone=${ESTADO[s.estado][0]}>${ESTADO[s.estado][1]}<//></div>
-          <p style=${{ marginTop: 4 }}>${ventana(s.inicia_at, s.termina_at)}</p>
-          <p class="small muted" style=${{ marginTop: 8 }}>${ESTADO[s.estado][2]}</p>
-          ${s.estado === 'por_pagar' && html`<p class="small" style=${{ marginTop: 8 }}>Tienes ${falta(s.pagar_antes_de)} para pagar la cuota de ${money(s.cuota)}.</p>`}
-          <div class="row" style=${{ marginTop: 12 }}>
-            <${DS.Button} size="sm" variant=${s.estado === 'por_pagar' ? 'primary' : 'secondary'} onClick=${() => ir('consultas/' + s.id)}>${s.estado === 'por_pagar' ? 'Pagar y confirmar' : 'Ver detalle'}<//>
-          </div>
-        </article>`)}
         <${AvisoUrgencias} />
       </div>
       <div class="stack">
-        <${Caja} titulo="Avisos">
-          ${avisos.datos && !avisos.datos.length && html`<p class="small muted">Aquí verás las novedades de tus consultas.</p>`}
-          <ul class="hist">${(avisos.datos || []).slice(0, 6).map((a) => html`<li key=${a.id}>
-            <b class="small" style=${{ fontWeight: 600 }}>${a.titulo}</b><span class="small muted">${a.cuerpo}</span><span class="small muted">${fechaHora(a.created_at)}</span></li>`)}</ul>
-        <//>
         <${Caja} titulo="Cómo funciona">
           <ol class="guia" style=${{ color: 'var(--ink)' }}>
             <li>Eliges servicio, horario y de uno a tres médicos veterinarios de tu zona.</li>

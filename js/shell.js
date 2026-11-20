@@ -38,9 +38,10 @@ export const NAV = {
       { id: 'inicio', label: 'Inicio', icon: 'home' },
       { id: 'solicitar', label: 'Solicitar', icon: 'plus', featured: true },
       { id: 'consultas', label: 'Consultas', icon: 'cal', count: 'consultas' },
+      { id: 'avisos', label: 'Avisos', icon: 'bell', count: 'avisos' },
       { id: 'perfil', label: 'Perfil', icon: 'user' },
     ] }],
-    tabs: ['inicio', 'solicitar', 'consultas', 'perfil'],
+    tabs: ['inicio', 'solicitar', 'consultas', 'avisos', 'perfil'],
   },
   mvz: {
     etiqueta: 'Médico veterinario',
@@ -48,9 +49,10 @@ export const NAV = {
       { id: 'solicitudes', label: 'Solicitudes', icon: 'inbox', count: 'porResponder' },
       { id: 'agenda', label: 'Agenda', icon: 'cal' },
       { id: 'servicios', label: 'Servicios', icon: 'wallet' },
+      { id: 'avisos', label: 'Avisos', icon: 'bell', count: 'avisos' },
       { id: 'perfil', label: 'Perfil', icon: 'user' },
     ] }],
-    tabs: ['solicitudes', 'agenda', 'servicios', 'perfil'],
+    tabs: ['solicitudes', 'agenda', 'servicios', 'avisos', 'perfil'],
   },
   admin: {
     etiqueta: 'Panel de LilieVET',

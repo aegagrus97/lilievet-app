@@ -5,6 +5,7 @@ import { Layout, ToastProvider, useRuta, ir, Cargando, ErrorCarga, NAV } from '.
 import { Entrar, Registro, Recuperar, NuevaContrasena, SinConfig } from './auth.js';
 import { PaginaDoc } from './legal.js';
 import { Perfil } from './cuenta.js';
+import { Avisos } from './avisos.js';
 import { InicioTutor } from './tutor/inicio.js';
 import { Solicitar } from './tutor/solicitar.js';
 import { Consultas } from './tutor/consultas.js';
@@ -27,19 +28,21 @@ function useTema() {
   return [tema, () => setTema((t) => ({ auto: 'light', light: 'dark', dark: 'auto' }[t]))];
 }
 
-const TITULOS = { inicio: 'Inicio', solicitar: 'Solicitar', consultas: 'Consultas', perfil: 'Perfil', solicitudes: 'Solicitudes', agenda: 'Agenda', servicios: 'Servicios' };
+const TITULOS = { inicio: 'Inicio', solicitar: 'Solicitar', consultas: 'Consultas', perfil: 'Perfil', avisos: 'Avisos', solicitudes: 'Solicitudes', agenda: 'Agenda', servicios: 'Servicios' };
 
 function Vista({ vista, seccion, sub, perfil, onPerfil, setConteos }) {
   if (vista === 'tutor') {
     if (seccion === 'solicitar') return html`<${Solicitar} perfil=${perfil} />`;
     if (seccion === 'consultas') return html`<${Consultas} perfil=${perfil} sub=${sub} />`;
     if (seccion === 'perfil') return html`<${Perfil} perfil=${perfil} onPerfil=${onPerfil} />`;
+    if (seccion === 'avisos') return html`<${Avisos} perfil=${perfil} onPerfil=${onPerfil} />`;
     return html`<${InicioTutor} perfil=${perfil} />`;
   }
   if (vista === 'mvz') {
     if (seccion === 'agenda') return html`<${Agenda} perfil=${perfil} onPerfil=${onPerfil} />`;
     if (seccion === 'servicios') return html`<${Servicios} perfil=${perfil} onPerfil=${onPerfil} />`;
     if (seccion === 'perfil') return html`<${Perfil} perfil=${perfil} onPerfil=${onPerfil} />`;
+    if (seccion === 'avisos') return html`<${Avisos} perfil=${perfil} onPerfil=${onPerfil} />`;
     return html`<${SolicitudesMvz} perfil=${perfil} onPerfil=${onPerfil} onConteos=${setConteos} />`;
   }
   // El Panel exige doble factor. Aunque alguien se salte esta pantalla, la base rechaza cada función.
@@ -80,6 +83,13 @@ function App() {
     }).catch(setErrorPerfil);
   }, [uid]);
 
+  // Tutor y médico: se revisa el perfil cada minuto (avisos sin leer, cambios hechos desde el Panel)
+  useEffect(() => {
+    if (!uid || !vista || vista === 'admin') return undefined;
+    const t = setInterval(() => { recargarPerfil().catch(() => {}); }, 60000);
+    return () => clearInterval(t);
+  }, [uid, vista]);
+
   if (['terminos', 'privacidad', 'carta'].includes(seccion)) return html`<${PaginaDoc} doc=${seccion} />`;
   if (api.mode === 'sin_config') return html`<${SinConfig} />`;
   if (sesion === undefined) return html`<${Cargando} />`;
@@ -102,7 +112,7 @@ function App() {
   const titulo = vista === 'admin' ? tituloPanel(actual) : pendiente && actual === 'solicitudes' ? 'Tu alta' : TITULOS[actual];
   const etiquetas = pendiente ? { solicitudes: 'Tu alta' } : null;
 
-  return html`<${Layout} vista=${vista} ruta=${actual} perfil=${perfil} conteos=${conteos} etiquetas=${etiquetas}
+  return html`<${Layout} vista=${vista} ruta=${actual} perfil=${perfil} conteos=${vista === 'admin' ? conteos : { ...conteos, avisos: perfil.avisos_sin_leer }} etiquetas=${etiquetas}
       titulo=${titulo} tema=${tema} onTema=${cambiarTema} onSalir=${() => api.salir()} onCambiarVista=${cambiarVista}>
     <${Vista} vista=${vista} seccion=${actual} sub=${actual === seccion ? sub : undefined} perfil=${perfil} onPerfil=${recargarPerfil} setConteos=${setConteos} />
   <//>`;

@@ -31,6 +31,8 @@ function solicitudesTutor() {
       opciones: [{ orden: 1, estado: 'pendiente', nombre: MEDICOS[2].nombre, vence_at: en(0.6) }, { orden: 2, estado: 'en_espera', nombre: MEDICOS[0].nombre }, { orden: 3, estado: 'en_espera', nombre: MEDICOS[1].nombre }], medico: null, pago: null, reportes: [] },
     { id: 's4', servicio: 'consulta', mascota: 'Lilie', especie: 'gato', ...dom, inicia_at: d, termina_at: mas2(d), estado: 'realizada', cuota: 120, precio_servicio: 700, reagendas: 0, created_at: en(-24 * 7),
       opciones: [{ orden: 1, estado: 'aceptada', nombre: MEDICOS[2].nombre }], medico: legM(MEDICOS[2]), pago: 'aprobado', encuesta_pendiente: true, reportes: [] },
+    { id: 's5', servicio: 'vacunacion', mascota: 'Lilie', especie: 'gato', sexo: 'hembra', edad_meses: 24, ...dom, inicia_at: bloque(3, 18), termina_at: mas2(bloque(3, 18)), estado: 'sin_medico', cuota: 120, reagendas: 0, created_at: en(-0.1),
+      opciones: [{ orden: 1, estado: 'sin_respuesta', nombre: MEDICOS[1].nombre }], reportes: [] },
   ];
 }
 function solicitudesMvz() {

@@ -42,6 +42,9 @@ begin
     'es_admin', v_admin, 'panel_abierto', privado.es_admin(),
     'mvz', case when m.id is null then null else jsonb_build_object(
       'estado', m.estado, 'cedula', m.cedula, 'cedula_verificada_at', m.cedula_verificada_at,
+      -- El Panel pidió corregir la cédula y todavía no la vuelve a escribir
+      'cedula_por_corregir', m.cedula is null and m.cedula_verificada_at is null
+                             and exists (select 1 from app.avisos a where a.destinatario_id = m.id and a.tipo = 'cedula'),
       'presentacion', m.presentacion, 'precio_consulta', m.precio_consulta, 'precio_vacunacion', m.precio_vacunacion,
       'precio_desparasitacion', m.precio_desparasitacion, 'medios_pago', m.medios_pago,
       'comparte_telefono', m.comparte_telefono_at is not null, 'recibe_solicitudes', m.recibe_solicitudes,

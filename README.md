@@ -91,6 +91,14 @@ No necesita plantilla de autenticación (el tutor escribe primero) y las respues
 
 Después de la verificación automática, en el mismo número: un agente que conteste preguntas frecuentes (cómo pedir una consulta, cuánto cuesta, cómo cancelar) y pase a una persona lo que no sepa resolver. Nunca valora síntomas ni da indicaciones médicas, igual que el aviso actual de soporte.
 
+### Pendiente: activar los avisos por WhatsApp (20 nov 2026)
+
+El código ya está listo en `supabase/functions/enviar-avisos`: cada aviso (por ejemplo "Un médico veterinario aceptó tu solicitud") se manda por correo y, cuando esto esté configurado, también por WhatsApp con el mismo enlace directo (en ese caso, al cobro de la cuota). Falta:
+
+1. Cuenta de WhatsApp Business en Meta con número dedicado (ver los pendientes de verificación por WhatsApp).
+2. Una plantilla aprobada, categoría **utilidad**, idioma es_MX, con dos variables: `{{1}}` = título del aviso y `{{2}}` = enlace. Ejemplo: "LilieVET: {{1}}. Entra aquí: {{2}}".
+3. En Supabase → Edge Functions → Secrets: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` y `WHATSAPP_TEMPLATE` (el nombre de la plantilla).
+
 ### Pendiente: diseño del correo de avisos (20 nov 2026)
 
 En el correo que llega (Edge Function `supabase/functions/enviar-avisos`), la línea "No es un servicio de urgencias." del pie se ve mal: va pegada al final del texto plano, sin separación ni formato. Acomodarla mejor (por ejemplo, una versión HTML del correo con un pie separado y más discreto, conservando la versión de texto).

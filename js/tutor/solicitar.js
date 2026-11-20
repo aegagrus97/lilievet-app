@@ -8,11 +8,29 @@ import { AvisoUrgencias } from '../legal.js';
 const PASOS = ['Servicio', 'Domicilio', 'Horario', 'Médico veterinario', 'Confirmar'];
 const ORDEN = ['Primera opción', 'Segunda opción', 'Tercera opción'];
 
+// "Buscar de nuevo" desde Inicio: la siguiente solicitud empieza con los datos de una anterior
+let borrador = null;
+export const prellenarSolicitud = (s) => { borrador = s; };
+function desdeBorrador() {
+  const b = borrador; borrador = null;
+  const base = { servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false };
+  if (!b) return [base, 1];
+  const m = b.edad_meses;
+  const enAnios = m != null && m >= 12 && m % 12 === 0;
+  const d = { ...base, servicio: b.servicio, mascota: b.mascota || '', especie: b.especie || 'perro', sexo: b.sexo || '',
+    edad: m == null ? '' : String(enAnios ? m / 12 : m), edadUnidad: enAnios ? 'anios' : 'meses', motivo: b.motivo || '',
+    alcaldia: b.alcaldia || '', colonia: b.colonia || '', calle_numero: b.calle_numero || '', cp: b.cp || '', referencias: b.referencias || '' };
+  // Con los datos completos se va directo a elegir horario; si falta algo, desde el principio
+  const completo = d.sexo && d.edad !== '' && d.alcaldia && d.colonia && d.calle_numero && /^\d{5}$/.test(d.cp) && (d.servicio !== 'consulta' || d.motivo.length >= 10);
+  return [d, completo ? 3 : 1];
+}
+
 export function Solicitar({ perfil }) {
   const toast = useToast();
   const P = perfil.parametros;
-  const [paso, setPaso] = useState(1);
-  const [d, setD] = useState({ servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false });
+  const [inicial] = useState(desdeBorrador);
+  const [paso, setPaso] = useState(inicial[1]);
+  const [d, setD] = useState(inicial[0]);
   const [bloques, setBloques] = useState(null);
   const [dia, setDia] = useState(null);
   const [medicos, setMedicos] = useState(null);
