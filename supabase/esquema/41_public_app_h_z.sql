@@ -121,9 +121,11 @@ AS $function$
 declare y app.perfiles := privado.yo('mvz'); s app.solicitudes;
 begin
   select * into s from app.solicitudes where id = p_solicitud and mvz_id = y.id for update;
-  if not found or s.estado <> 'confirmada' then perform privado.error('Solo se puede cambiar el horario de una consulta confirmada.'); end if;
-  if s.reagendas >= 1 then perform privado.error('Esta consulta ya se reagendó una vez.'); end if;
-  if p_inicia_at is null or p_inicia_at < now() + interval '2 hours' or p_inicia_at > s.inicia_original_at + interval '30 days'
+  if not found or s.estado not in ('por_pagar', 'confirmada') then perform privado.error('Solo se puede cambiar el horario de una consulta aceptada o confirmada.'); end if;
+  if s.reagendas >= 1 then perform privado.error('Esta consulta ya cambió de horario una vez.'); end if;
+  if s.reagenda_propuesta_at is not null then perform privado.error('Ya hay un cambio de horario pendiente de respuesta.'); end if;
+  if now() >= s.inicia_at then perform privado.error('El horario de la consulta ya empezó.'); end if;
+  if p_inicia_at is null or p_inicia_at = s.inicia_at or p_inicia_at < now() + interval '2 hours' or p_inicia_at > s.inicia_original_at + interval '30 days'
      or extract(minute from p_inicia_at at time zone 'America/Mexico_City') <> 0
      or extract(hour from p_inicia_at at time zone 'America/Mexico_City') not in (6, 8, 10, 12, 14, 16, 18, 20) then
     perform privado.error('Elige un bloque futuro dentro de los 30 días siguientes a la fecha original.');
@@ -132,7 +134,7 @@ begin
     perform privado.error('Ya tienes una consulta en ese horario.');
   end if;
   perform privado.limitar('proponer_reagenda', 6, interval '1 day');
-  update app.solicitudes set reagenda_propuesta_at = p_inicia_at where id = s.id;
+  update app.solicitudes set reagenda_propuesta_at = p_inicia_at, reagenda_por = 'mvz' where id = s.id;
   perform privado.avisar(s.tutor_id, 'reagenda', 'El médico veterinario propone otro horario',
     'Propone mover tu consulta al ' || privado.cuando(p_inicia_at) || '. Entra a LilieVET para aceptar o conservar el horario actual.', s.id);
 end $function$
@@ -205,26 +207,36 @@ CREATE OR REPLACE FUNCTION public.responder_reagenda(p_solicitud uuid, p_acepta 
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-declare t app.perfiles := privado.yo('tutor'); s app.solicitudes;
+declare p app.perfiles := privado.yo(); s app.solicitudes; v_otro uuid; v_quien text;
 begin
-  select * into s from app.solicitudes where id = p_solicitud and tutor_id = t.id for update;
-  if not found or s.estado <> 'confirmada' or s.reagenda_propuesta_at is null then perform privado.error('No hay un cambio de horario por responder.'); end if;
+  select * into s from app.solicitudes where id = p_solicitud for update;
+  if not found or s.estado not in ('por_pagar', 'confirmada') or s.reagenda_propuesta_at is null
+     or not ((coalesce(s.reagenda_por, 'mvz') = 'mvz' and s.tutor_id = p.id) or (s.reagenda_por = 'tutor' and s.mvz_id = p.id)) then
+    perform privado.error('No hay un cambio de horario por responder.');
+  end if;
+  v_otro := case when p.id = s.tutor_id then s.mvz_id else s.tutor_id end;
+  v_quien := case when p.id = s.tutor_id then 'El tutor' else 'El médico veterinario' end;
   if p_acepta then
-    if s.reagenda_propuesta_at <= now() then perform privado.error('El horario propuesto ya pasó. Pide al médico que proponga otro.'); end if;
+    if s.reagenda_propuesta_at <= now() then perform privado.error('El horario propuesto ya pasó.'); end if;
+    if s.estado = 'por_pagar' and s.reagenda_propuesta_at - interval '30 minutes' <= now() then
+      perform privado.error('Ese horario es demasiado pronto para pagar la cuota a tiempo.');
+    end if;
     begin
       update app.solicitudes set inicia_at = s.reagenda_propuesta_at, termina_at = s.reagenda_propuesta_at + interval '2 hours',
-        reagendas = reagendas + 1, reagenda_propuesta_at = null where id = s.id;
+        reagendas = reagendas + 1, reagenda_propuesta_at = null, reagenda_por = null,
+        pagar_antes_de = case when s.estado = 'por_pagar' then least(s.pagar_antes_de, s.reagenda_propuesta_at - interval '30 minutes') else pagar_antes_de end
+        where id = s.id;
     exception when unique_violation then
-      perform privado.error('Ese horario ya se ocupó. Pide al médico que proponga otro.');
+      perform privado.error('Ese horario ya se ocupó. Conserva el horario actual o cancela.');
     end;
-    perform privado.avisar(s.mvz_id, 'reagenda', 'El tutor aceptó el cambio de horario',
+    perform privado.avisar(v_otro, 'reagenda', v_quien || ' aceptó el cambio de horario',
       'La consulta queda para el ' || privado.cuando(s.reagenda_propuesta_at) || '.', s.id);
   else
-    update app.solicitudes set reagenda_propuesta_at = null where id = s.id;
-    perform privado.avisar(s.mvz_id, 'reagenda', 'El tutor no aceptó el cambio de horario',
+    update app.solicitudes set reagenda_propuesta_at = null, reagenda_por = null where id = s.id;
+    perform privado.avisar(v_otro, 'reagenda', v_quien || ' no aceptó el cambio de horario',
       'La consulta sigue para el ' || privado.cuando(s.inicia_at) || '.', s.id);
   end if;
-  perform privado.auditar('responder_reagenda', 'solicitud', s.id::text, jsonb_build_object('acepta', p_acepta));
+  perform privado.auditar('responder_reagenda', 'solicitud', s.id::text, jsonb_build_object('acepta', p_acepta, 'responde', case when p.id = s.tutor_id then 'tutor' else 'mvz' end));
 end $function$
 ;
 
@@ -338,3 +350,55 @@ begin
   update app.perfiles set telefono = right(v_tel, 10), telefono_verificado_at = v_conf where id = p.id;
   return true;
 end $function$
+
+CREATE OR REPLACE FUNCTION public.horarios_reagenda(p_solicitud uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare t app.perfiles := privado.yo('tutor'); s app.solicitudes; v jsonb;
+begin
+  select * into s from app.solicitudes where id = p_solicitud and tutor_id = t.id;
+  if not found or s.estado not in ('por_pagar', 'confirmada') or s.mvz_id is null then perform privado.error('Esta consulta ya no puede cambiar de horario.'); end if;
+  perform privado.limitar('ver_agenda', 240, interval '1 hour');
+  select coalesce(jsonb_agg(c.inicia order by c.inicia), '[]'::jsonb) into v
+  from (
+    select distinct ((d.dia + make_interval(hours => h.hora::integer)) at time zone 'America/Mexico_City') as inicia
+    from generate_series(((now() at time zone 'America/Mexico_City')::date)::timestamp,
+                         ((s.inicia_original_at at time zone 'America/Mexico_City')::date + 30)::timestamp, interval '1 day') as d (dia)
+    join app.mvz_horario h on h.mvz_id = s.mvz_id and h.dia = extract(isodow from d.dia)
+  ) c
+  where c.inicia >= now() + make_interval(hours => privado.param_int('horas_anticipacion'))
+    and c.inicia <= s.inicia_original_at + interval '30 days'
+    and c.inicia <> s.inicia_at
+    and privado.disponible(s.mvz_id, s.alcaldia, s.servicio, c.inicia);
+  return v;
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.pedir_reagenda(p_solicitud uuid, p_inicia_at timestamp with time zone)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare t app.perfiles := privado.yo('tutor'); s app.solicitudes;
+begin
+  select * into s from app.solicitudes where id = p_solicitud and tutor_id = t.id for update;
+  if not found or s.estado not in ('por_pagar', 'confirmada') or s.mvz_id is null then perform privado.error('Esta consulta ya no puede cambiar de horario.'); end if;
+  if s.reagendas >= 1 then perform privado.error('Esta consulta ya cambió de horario una vez.'); end if;
+  if s.reagenda_propuesta_at is not null then perform privado.error('Ya hay un cambio de horario pendiente de respuesta.'); end if;
+  if now() >= s.inicia_at then perform privado.error('El horario de la consulta ya empezó.'); end if;
+  if p_inicia_at is null or p_inicia_at = s.inicia_at
+     or p_inicia_at < now() + make_interval(hours => privado.param_int('horas_anticipacion'))
+     or p_inicia_at > s.inicia_original_at + interval '30 days'
+     or not privado.disponible(s.mvz_id, s.alcaldia, s.servicio, p_inicia_at) then
+    perform privado.error('Ese horario ya no está disponible. Elige otro.');
+  end if;
+  perform privado.limitar('pedir_reagenda', 6, interval '1 day');
+  update app.solicitudes set reagenda_propuesta_at = p_inicia_at, reagenda_por = 'tutor' where id = s.id;
+  perform privado.avisar(s.mvz_id, 'reagenda', 'El tutor pide otro horario',
+    'Pide mover la consulta del ' || privado.cuando(s.inicia_at) || ' al ' || privado.cuando(p_inicia_at) || '. Entra a LilieVET para aceptar o conservar el horario.', s.id);
+end $function$
+;

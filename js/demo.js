@@ -41,7 +41,7 @@ function solicitudesMvz() {
     { id: 'q1', servicio: 'consulta', especie: 'perro', sexo: 'macho', edad_meses: 84, motivo: 'Cojea de la pata trasera derecha desde ayer, come bien.', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: b, termina_at: mas2(b), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.7) }, reagendas: 0 },
     { id: 'q2', servicio: 'vacunacion', especie: 'gato', sexo: 'hembra', edad_meses: 4, alcaldia: 'Benito Juárez', colonia: 'Narvarte', inicia_at: d, termina_at: mas2(d), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.3) }, reagendas: 0 },
     { id: 'q3', servicio: 'consulta', especie: 'gato', sexo: 'macho', edad_meses: 30, motivo: 'Vomita después de comer desde hace tres días.', alcaldia: 'Coyoacán', colonia: 'Copilco', inicia_at: c, termina_at: mas2(c), estado: 'por_pagar', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0 },
-    { id: 'q4', servicio: 'consulta', especie: 'perro', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: a, termina_at: mas2(a), estado: 'confirmada', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0,
+    { id: 'q4', servicio: 'consulta', especie: 'perro', reagendas: 0, reagenda_propuesta_at: bloque(4, 14), reagenda_por: 'tutor', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: a, termina_at: mas2(a), estado: 'confirmada', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0,
       contacto: { nombre: 'Tania Herrera Luna', telefono: '5512345678', mascota: 'Liebe', calle_numero: 'Viena 120, int. 3', cp: '04100', referencias: 'Portón verde, timbre 3' } },
   ];
 }
@@ -111,7 +111,9 @@ export function demoApi(quien) {
       if (s.medico) s.medico.telefono = null;
       return espera({ estado: s.estado, reembolso });
     },
-    responderReagenda: async (id, acepta) => { const s = sols.find((x) => x.id === id); if (acepta) { s.inicia_at = s.reagenda_propuesta_at; s.termina_at = mas2(s.inicia_at); s.reagendas = 1; } s.reagenda_propuesta_at = null; },
+    horariosReagenda: async () => espera([bloque(2, 10), bloque(2, 12), bloque(4, 16), bloque(6, 10)]),
+    pedirReagenda: async (id, inicia) => { const x = sols.find((y) => y.id === id); if (x) { x.reagenda_propuesta_at = inicia; x.reagenda_por = 'tutor'; } },
+    responderReagenda: async (id, acepta) => { const s = sols.find((x) => x.id === id) || solsM.find((x) => x.id === id); if (acepta) { s.inicia_at = s.reagenda_propuesta_at; s.termina_at = mas2(s.inicia_at); s.reagendas = 1; } s.reagenda_propuesta_at = null; s.reagenda_por = null; },
     reportar: async (id, tipo) => { const s = sols.find((x) => x.id === id); if (s) s.reportes.push({ tipo, estado: 'abierto', created_at: en(0) }); return espera(null, 400); },
     responderEncuesta: async (id) => { sols.find((x) => x.id === id).encuesta_pendiente = false; },
     pagar: async (id) => { await espera(null, 700); const s = sols.find((x) => x.id === id); s.estado = 'confirmada'; s.pago = 'aprobado'; s.medico.telefono = '5598765432'; },

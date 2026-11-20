@@ -98,6 +98,8 @@ function supabaseApi() {
     misSolicitudes: () => rpc('mis_solicitudes'),
     cancelarSolicitud: (id) => rpc('cancelar_solicitud', { p_solicitud: id }),
     responderReagenda: (id, acepta) => rpc('responder_reagenda', { p_solicitud: id, p_acepta: acepta }),
+    horariosReagenda: (id) => rpc('horarios_reagenda', { p_solicitud: id }),
+    pedirReagenda: (id, inicia) => rpc('pedir_reagenda', { p_solicitud: id, p_inicia_at: inicia }),
     reportar: (id, tipo, detalle) => rpc('reportar', { p_solicitud: id, p_tipo: tipo, p_detalle: detalle }),
     responderEncuesta: (id, p) => rpc('responder_encuesta', { p_solicitud: id, p }),
     // Cobro de la cuota: el servidor crea el cobro y aquí solo se abre Mercado Pago

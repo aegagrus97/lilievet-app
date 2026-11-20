@@ -252,6 +252,7 @@ AS $function$
     'estado', case when s.mvz_id = p_mvz then s.estado else 'buscando' end,
     'oferta', (select jsonb_build_object('estado', o.estado, 'vence_at', o.vence_at) from app.solicitud_opciones o where o.solicitud_id = s.id and o.mvz_id = p_mvz),
     'reagendas', s.reagendas, 'reagenda_propuesta_at', case when s.mvz_id = p_mvz then s.reagenda_propuesta_at end,
+    'reagenda_por', case when s.mvz_id = p_mvz then s.reagenda_por end,
     'contacto', case when s.mvz_id = p_mvz and (s.estado = 'confirmada' or (s.estado = 'realizada' and s.termina_at > now() - interval '3 days')) then
       (select jsonb_build_object('nombre', pf.nombre || ' ' || pf.apellidos, 'telefono', pf.telefono, 'mascota', s.mascota,
         'calle_numero', s.calle_numero, 'cp', s.cp, 'referencias', s.referencias) from app.perfiles pf where pf.id = s.tutor_id) end
@@ -270,7 +271,7 @@ AS $function$
     'alcaldia', s.alcaldia, 'colonia', s.colonia, 'calle_numero', s.calle_numero, 'cp', s.cp, 'referencias', s.referencias,
     'inicia_at', s.inicia_at, 'termina_at', s.termina_at, 'estado', s.estado, 'cuota', s.cuota,
     'precio_servicio', s.precio_servicio, 'pagar_antes_de', s.pagar_antes_de, 'reagendas', s.reagendas,
-    'reagenda_propuesta_at', s.reagenda_propuesta_at, 'motivo_cierre', s.motivo_cierre, 'created_at', s.created_at,
+    'reagenda_propuesta_at', s.reagenda_propuesta_at, 'reagenda_por', s.reagenda_por, 'motivo_cierre', s.motivo_cierre, 'created_at', s.created_at,
     'opciones', (select jsonb_agg(jsonb_build_object('orden', o.orden, 'estado', o.estado, 'vence_at', o.vence_at,
                    'nombre', pf.nombre || ' ' || pf.apellidos) order by o.orden)
                  from app.solicitud_opciones o join app.perfiles pf on pf.id = o.mvz_id where o.solicitud_id = s.id),

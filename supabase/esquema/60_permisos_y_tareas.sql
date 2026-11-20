@@ -86,3 +86,9 @@ select cron.schedule('lilievet-reembolsos', '*/15 * * * *', $$select privado.lla
 
 -- 2026-11-20 · migración foto_mvz: bucket público 'fotos-mvz' (1 MB, solo JPG) y políticas de Storage;
 -- ver supabase/esquema/70_fotos_mvz.sql
+
+-- 2026-11-20 · migración reagenda_tutor
+revoke all on function public.horarios_reagenda(uuid) from public, anon, authenticated, service_role;
+revoke all on function public.pedir_reagenda(uuid, timestamp with time zone) from public, anon, authenticated, service_role;
+grant execute on function public.horarios_reagenda(uuid) to authenticated;
+grant execute on function public.pedir_reagenda(uuid, timestamp with time zone) to authenticated;

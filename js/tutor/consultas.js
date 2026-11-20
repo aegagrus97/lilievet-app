@@ -1,5 +1,5 @@
 // Consultas del tutor: estado, pago de la cuota, contacto del médico, cancelación, reagenda, reporte y encuesta.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, mascotaTxt, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, ventana, falta, fechaDia, diaISO, fechaHora, telBonito, money, leyenda } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, mascotaTxt, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, ventana, hora, falta, fechaDia, diaISO, fechaHora, telBonito, money, leyenda } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
 import { useAccion, FormReporte } from '../cuenta.js';
@@ -35,6 +35,37 @@ function Encuesta({ s, onListo }) {
   </div>`;
 }
 
+// El tutor pide otro horario entre los libres de su médico; el médico acepta o lo rechaza.
+function PedirHorario({ s, onListo, onCerrar }) {
+  const [lista, setLista] = useState(null);
+  const [error, setError] = useState(null);
+  const [dia, setDia] = useState(null);
+  const [elegido, setElegido] = useState(null);
+  const [st, correr] = useAccion();
+  useEffect(() => { api.horariosReagenda(s.id).then((l) => { setLista(l); setDia(l[0] ? diaISO(l[0]) : null); }).catch((e) => setError(e.message)); }, []);
+  const dias = [...new Set((lista || []).map(diaISO))];
+  const enviar = async () => { if (await correr(() => api.pedirReagenda(s.id, elegido))) onListo(); };
+  return html`<div class="sub-box stack-sm">
+    <p><b>Pedir otro horario</b></p>
+    <p class="small muted">Estos son los horarios libres de ${s.medico ? s.medico.nombre : 'tu médico veterinario'}. Le avisamos y él acepta o conserva el horario actual. ${s.estado === 'confirmada' ? 'Tu cuota de servicio se conserva para la nueva fecha. ' : ''}El horario se puede cambiar una sola vez.</p>
+    ${error && html`<${DS.Notice} tone="error">${error}<//>`}
+    ${!lista && !error && html`<p class="small muted">Buscando horarios…</p>`}
+    ${lista && !lista.length && html`<p class="small">Tu médico no tiene otros horarios libres en los próximos días. Puedes conservar el horario o cancelar.</p>`}
+    ${lista && lista.length > 0 && html`
+      <div class="row" role="radiogroup" aria-label="Día">
+        ${dias.map((x) => html`<${DS.Chip} key=${x} type="radio" name=${'rd-' + s.id} checked=${dia === x} onChange=${() => { setDia(x); setElegido(null); }}>${fechaDia(x).replace(/ de \d{4}| \d{4}/, '')}<//>`)}
+      </div>
+      <div class="row" role="radiogroup" aria-label="Horario">
+        ${lista.filter((b) => diaISO(b) === dia).map((b) => html`<${DS.Chip} key=${b} type="radio" name=${'rh-' + s.id} checked=${elegido === b} onChange=${() => setElegido(b)}>${hora(b)} a ${hora(new Date(new Date(b).getTime() + 2 * H))}<//>`)}
+      </div>`}
+    ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
+    <div class="row">
+      <${DS.Button} size="sm" disabled=${st.ocupado || !elegido} onClick=${enviar}>${st.ocupado ? 'Enviando…' : 'Pedir este horario'}<//>
+      <${DS.Button} size="sm" variant="secondary" onClick=${onCerrar}>No, gracias<//>
+    </div>
+  </div>`;
+}
+
 function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
   const toast = useToast();
   const [st, correr, limpiar] = useAccion();
@@ -46,6 +77,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
   const empezo = Date.now() >= new Date(s.inicia_at).getTime();
   const puedeReportar = ['confirmada', 'realizada'].includes(s.estado) && empezo && Date.now() < new Date(s.termina_at).getTime() + 7 * 24 * H;
   const abierto = s.reportes.some((r) => r.estado === 'abierto');
+  const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo;
 
   const pagar = () => correr(async () => { await api.pagar(s.id); if (api.mode === 'demo') { toast('Consulta confirmada.', { sparks: true }); recargar(); } });
   // Enlace del correo/WhatsApp "médico aceptó" (…#/consultas/<id>/pagar): abre el cobro directo, una sola vez
@@ -92,8 +124,10 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
 
     ${s.pago && s.pago !== 'creado' && s.pago !== 'aprobado' && html`<${DS.Notice} tone="info">Cuota de servicio: ${PAGO[s.pago].toLowerCase()}.${s.pago === 'reembolso_pendiente' ? ' Mercado Pago la devuelve al mismo medio con el que pagaste; puede tardar unos días.' : ''}<//>`}
 
-    ${s.estado === 'confirmada' && s.reagenda_propuesta_at && html`<${DS.Notice} title="El médico veterinario propone otro horario.">
-      ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Tu cuota de servicio se conserva para la nueva fecha.
+    ${s.reagenda_propuesta_at && s.reagenda_por === 'tutor' && html`<${DS.Notice} tone="info" title="Pediste cambiar el horario.">
+      A ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Falta que el médico veterinario responda; mientras tanto se conserva el horario actual.<//>`}
+    ${s.reagenda_propuesta_at && s.reagenda_por !== 'tutor' && html`<${DS.Notice} title="El médico veterinario propone otro horario.">
+      ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}.${s.estado === 'confirmada' ? ' Tu cuota de servicio se conserva para la nueva fecha.' : ' Si aceptas, pagas la cuota para el nuevo horario.'}
       <div class="row" style=${{ marginTop: 8 }}>
         <${DS.Button} size="sm" disabled=${st.ocupado} onClick=${() => reagenda(true)}>Aceptar cambio<//>
         <${DS.Button} size="sm" variant="secondary" disabled=${st.ocupado} onClick=${() => reagenda(false)}>Conservar horario<//>
@@ -110,12 +144,14 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
       <p><b>¿Cancelar esta ${s.estado === 'confirmada' ? 'consulta' : 'solicitud'}?</b></p>
       <p class="small">${s.estado !== 'confirmada' ? 'Aún no has pagado nada: no hay ningún cargo.'
         : conReembolso ? `Faltan más de ${P.horas_cancelacion} horas: te reembolsamos la cuota de servicio completa.`
-        : `Faltan menos de ${P.horas_cancelacion} horas: la cuota de servicio no se reembolsa. Si prefieres otro horario, pídele al médico veterinario que proponga un cambio.`}</p>
+        : `Faltan menos de ${P.horas_cancelacion} horas: la cuota de servicio no se reembolsa.${puedeCambiar ? ' Si prefieres otro horario, mejor pide un cambio: tu cuota se conserva.' : ''}`}</p>
       <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => { setModo(null); limpiar(); }}>No<//></div>
     </div>`}
     ${modo === 'reporte' && html`<div class="sub-box"><${FormReporte} solicitudId=${s.id} tipos=${['inasistencia_mvz', 'reembolso', 'otro']} onListo=${recargar} /></div>`}
+    ${modo === 'horario' && html`<${PedirHorario} s=${s} onCerrar=${() => setModo(null)} onListo=${() => { setModo(null); toast('Le pedimos el cambio a tu médico veterinario.'); recargar(); }} />`}
 
     ${!modo && html`<div class="row">
+      ${puedeCambiar && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('horario')}>Pedir otro horario<//>`}
       ${['buscando', 'por_pagar', 'confirmada'].includes(s.estado) && !empezo && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('cancelar')}>Cancelar ${s.estado === 'confirmada' ? 'consulta' : 'solicitud'}<//>`}
       ${puedeReportar && !abierto && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('reporte')}>Reportar un problema o pedir reembolso<//>`}
     </div>`}

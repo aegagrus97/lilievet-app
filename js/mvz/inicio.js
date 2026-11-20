@@ -52,7 +52,7 @@ function Reagendar({ s, onListo }) {
   };
   return html`<div class="sub-box stack-sm">
     <p><b>Proponer otro horario</b></p>
-    <p class="small muted">Acuérdalo antes con el tutor. Él lo acepta en la app y la consulta se mueve; se puede una sola vez y dentro de los 30 días siguientes a la fecha original.</p>
+    <p class="small muted">${s.estado === 'por_pagar' ? 'El tutor todavía no paga: si acepta el cambio, paga la cuota para el nuevo horario. ' : 'Si puedes, acuérdalo antes con el tutor. '}Él lo acepta en la app y la consulta se mueve. El horario se puede cambiar una sola vez y dentro de los 30 días siguientes a la fecha original.</p>
     <div class="field-row">
       <${DS.Field} label="Día" type="date" min=${hoyISO()} value=${fecha} onChange=${(e) => setFecha(e.target.value)} />
       <${DS.Field} as="select" label="Bloque" value=${hora} onChange=${(e) => setHora(e.target.value)} options=${HORAS.map((h) => ({ value: String(h), label: bloqueTxt(h) }))} />
@@ -98,7 +98,9 @@ function Consulta({ s, recargar }) {
   const [st, correr] = useAccion();
   const c = s.contacto;
   const empezo = Date.now() >= new Date(s.inicia_at).getTime();
+  const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo;
   const cancelar = async () => { if (await correr(() => api.cancelarComoMvz(s.id, motivo))) { toast('Consulta cancelada. Avisamos al tutor.'); recargar(); } };
+  const responder = async (acepta) => { if (await correr(() => api.responderReagenda(s.id, acepta))) { toast(acepta ? 'Nuevo horario confirmado. Avisamos al tutor.' : 'Se conserva el horario actual. Avisamos al tutor.'); recargar(); } };
   const badge = { por_pagar: ['pendiente', 'Esperando pago del tutor'], confirmada: ['verificado', 'Confirmada'], realizada: ['completado', 'Realizada'] }[s.estado] || ['neutral', 'Cerrada'];
   return html`<article class="box stack">
     <div class="spread" style=${{ alignItems: 'flex-start' }}>
@@ -117,19 +119,25 @@ function Consulta({ s, recargar }) {
       <dt>Cobras</dt><dd>${money(s.precio_servicio)}${s.servicio === 'consulta' ? '' : ' o más'}, directo al tutor</dd>
     </dl>`}
     ${c && html`<p class="small muted">Usa estos datos solo para atender esta consulta. Se ocultan tres días después.</p>`}
-    ${s.reagenda_propuesta_at && html`<${DS.Notice} tone="info">Propusiste mover la consulta a: ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Falta que el tutor responda.<//>`}
+    ${s.reagenda_propuesta_at && s.reagenda_por !== 'tutor' && html`<${DS.Notice} tone="info">Propusiste mover la consulta a: ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Falta que el tutor responda.<//>`}
+    ${s.reagenda_propuesta_at && s.reagenda_por === 'tutor' && html`<${DS.Notice} title="El tutor pide otro horario.">
+      ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Lo eligió entre tus horarios libres. Si no te acomoda, se conserva el horario actual.
+      <div class="row" style=${{ marginTop: 8 }}>
+        <${DS.Button} size="sm" disabled=${st.ocupado} onClick=${() => responder(true)}>Aceptar cambio<//>
+        <${DS.Button} size="sm" variant="secondary" disabled=${st.ocupado} onClick=${() => responder(false)}>Conservar horario<//>
+      </div><//>`}
     ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
     ${modo === 'reagendar' && html`<${Reagendar} s=${s} onListo=${() => { setModo(null); toast('Propuesta enviada al tutor.'); recargar(); }} />`}
     ${modo === 'cancelar' && html`<div class="sub-box stack-sm">
       <p><b>¿Cancelar esta consulta?</b></p><p class="small">${s.estado === 'por_pagar'
         ? 'El tutor todavía no ha pagado, así que no se le cobra nada. Le avisamos que cancelaste para que pueda pedir otra consulta.'
-        : `Al tutor se le reembolsa la cuota de servicio completa.${s.reagendas < 1 && !empezo ? ' Si puedes atender otro día, mejor propón otro horario.' : ''}`}</p>
+        : 'Al tutor se le reembolsa la cuota de servicio completa.'}${puedeCambiar ? ' Si puedes atender otro día, mejor propón otro horario.' : ''}</p>
       <${DS.Field} label="Motivo" maxLength=${300} value=${motivo} onChange=${(e) => setMotivo(e.target.value)} />
       <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || motivo.trim().length < 5} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => setModo(null)}>No<//></div>
     </div>`}
     ${modo === 'reporte' && html`<div class="sub-box"><${FormReporte} solicitudId=${s.id} tipos=${['tutor_ausente', 'otro']} onListo=${recargar} /></div>`}
     ${!modo && ['por_pagar', 'confirmada', 'realizada'].includes(s.estado) && html`<div class="row">
-      ${s.estado === 'confirmada' && s.reagendas < 1 && !empezo && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('reagendar')}>Proponer otro horario<//>`}
+      ${puedeCambiar && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('reagendar')}>Proponer otro horario<//>`}
       ${s.estado !== 'realizada' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('cancelar')}>Cancelar consulta<//>`}
       ${empezo && s.estado !== 'por_pagar' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('reporte')}>Reportar un problema<//>`}
     </div>`}
@@ -141,7 +149,9 @@ export function SolicitudesMvz({ perfil, onPerfil, onConteos }) {
   useEffect(() => { const t = setInterval(recargar, 60000); return () => clearInterval(t); }, [recargar]);
   useEffect(() => { onPerfil && onPerfil().catch(() => {}); }, []);
   const ofertas = (datos || []).filter((s) => s.oferta?.estado === 'pendiente' && s.estado === 'buscando');
-  useEffect(() => { onConteos && onConteos({ porResponder: ofertas.length }); }, [ofertas.length]);
+  // Pendientes del médico: solicitudes nuevas y peticiones de cambio de horario del tutor
+  const cambios = (datos || []).filter((s) => s.reagenda_propuesta_at && s.reagenda_por === 'tutor').length;
+  useEffect(() => { onConteos && onConteos({ porResponder: ofertas.length + cambios }); }, [ofertas.length, cambios]);
 
   if (perfil.mvz.estado !== 'aprobado') return html`<${Alta} perfil=${perfil} />`;
   if (error) return html`<div class="page page-narrow"><${ErrorCarga} error=${error} onReintentar=${recargar} /></div>`;

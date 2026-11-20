@@ -22,15 +22,22 @@ function lineas(sols, perfil) {
   const vivas = sols.filter((s) => VIVAS.includes(s.estado)).sort((a, b) => new Date(a.inicia_at) - new Date(b.inicia_at));
   for (const s of vivas) {
     const que = `${SERVICIO[s.servicio]} para ${s.mascota}`;
+    const propuestaVet = s.reagenda_propuesta_at && s.reagenda_por !== 'tutor';
+    if (s.estado === 'por_pagar' && propuestaVet) {
+      out.push({ k: s.id + '-rg', icono: 'cal', tono: 'atencion', titulo: 'Tu vet propone cambiar el horario.',
+        detalle: `${que}. Revisa el nuevo horario; si lo aceptas, pagas la cuota para esa fecha.`,
+        accion: html`<${DS.Button} size="sm" onClick=${() => ir('consultas/' + s.id)}>Revisar<//>` });
+    }
     if (s.estado === 'por_pagar') {
       out.push({ k: s.id, icono: 'wallet', tono: 'atencion', titulo: 'Tu vet aceptó y estamos esperando tu pago.',
         detalle: `${que} · ${ventana(s.inicia_at, s.termina_at)}. Tienes ${falta(s.pagar_antes_de)} para pagar la cuota de ${money(s.cuota)}; si no, el horario se libera.`,
         accion: html`<${DS.Button} size="sm" onClick=${() => ir(`consultas/${s.id}/pagar`)}>Pagar y confirmar<//>` });
     } else if (s.estado === 'confirmada') {
-      out.push({ k: s.id, icono: 'cal', tono: s.reagenda_propuesta_at ? 'atencion' : 'ok',
-        titulo: s.reagenda_propuesta_at ? 'Tu vet propone cambiar el horario de tu consulta.' : `Tienes una consulta agendada para ${ventana(s.inicia_at, s.termina_at)}.`,
-        detalle: `${que}${s.medico ? ` con ${s.medico.nombre}` : ''}.${s.reagenda_propuesta_at ? ' Acepta el cambio o conserva el horario.' : ''}`,
-        accion: html`<${DS.Button} size="sm" variant=${s.reagenda_propuesta_at ? 'primary' : 'secondary'} onClick=${() => ir('consultas/' + s.id)}>${s.reagenda_propuesta_at ? 'Revisar' : 'Ver detalle'}<//>` });
+      const pedido = s.reagenda_propuesta_at && s.reagenda_por === 'tutor';
+      out.push({ k: s.id, icono: 'cal', tono: propuestaVet ? 'atencion' : 'ok',
+        titulo: propuestaVet ? 'Tu vet propone cambiar el horario de tu consulta.' : `Tienes una consulta agendada para ${ventana(s.inicia_at, s.termina_at)}.`,
+        detalle: `${que}${s.medico ? ` con ${s.medico.nombre}` : ''}.${propuestaVet ? ' Acepta el cambio o conserva el horario.' : pedido ? ' Pediste otro horario; falta que tu vet responda.' : ''}`,
+        accion: html`<${DS.Button} size="sm" variant=${propuestaVet ? 'primary' : 'secondary'} onClick=${() => ir('consultas/' + s.id)}>${propuestaVet ? 'Revisar' : 'Ver detalle'}<//>` });
     } else {
       const op = (s.opciones || []).find((o) => o.estado === 'pendiente');
       out.push({ k: s.id, icono: 'clock', titulo: 'Estamos esperando que un vet responda tu solicitud.',

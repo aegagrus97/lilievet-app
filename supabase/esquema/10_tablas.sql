@@ -134,6 +134,7 @@ create table app.solicitudes (
   motivo_cierre text,
   reagendas smallint not null default 0,
   reagenda_propuesta_at timestamp with time zone,
+  reagenda_por text,
   created_at timestamp with time zone not null default now(),
   constraint solicitudes_pkey PRIMARY KEY (id),
   constraint solicitudes_mvz_id_fkey FOREIGN KEY (mvz_id) REFERENCES app.mvz(id),
