@@ -56,6 +56,14 @@ Estos tres no se arreglan con código; se cierran en los paneles de Supabase y G
 2. **Proteger la cuenta de GitHub y la rama `main`.** Lo que hay en `main` es lo que corre en el navegador de cada persona: quien pueda escribir ahí puede robar sesiones. Activar verificación en dos pasos en la cuenta y una regla que impida forzar o borrar la rama.
 3. **Revisar Supabase Auth:** CAPTCHA en registro e inicio de sesión, contraseña mínima de 10 caracteres también en el servidor, confirmación de correo obligatoria, protección de contraseñas filtradas y límite de SMS por hora.
 
+### Pendiente: correo de los avisos con dominio propio (20 nov 2026)
+
+Los avisos por correo salen por **Resend** (cuenta abierta con catiamimbrera@gmail.com). Hoy el remitente es el de prueba, `LilieVET <onboarding@resend.dev>`, y con él Resend **solo entrega a catiamimbrera@gmail.com**: el resto de los usuarios no recibe correos todavía. Cuando se compre el dominio:
+
+1. En Resend → **Domains → Add Domain**, escribir el dominio y copiar los registros DNS (SPF, DKIM) en el lugar donde se compró. Esperar a que diga **Verified**.
+2. En Supabase → **Edge Functions → Secrets**, cambiar `MAIL_FROM` a `LilieVET <avisos@tudominio.mx>`. La clave `RESEND_API_KEY` no cambia.
+3. Probar con una cuenta que use otro correo (por ejemplo, la veterinaria de prueba).
+
 ## Ver el diseño sin conectar nada
 
 `?demo=tutor`, `?demo=mvz`, `?demo=mvz-nuevo` o `?demo=admin` abren la app con datos de ejemplo que viven solo en la memoria del navegador.
