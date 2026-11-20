@@ -444,3 +444,7 @@ a.lv-btn { text-decoration: none; }
 label.lv-btn { cursor: pointer; }
 label.lv-btn.is-disabled { opacity: .6; pointer-events: none; }
 label.lv-btn:focus-within { box-shadow: var(--focus-ring); }
+
+/* "Para continuar falta…" bajo los botones del formulario de solicitud */
+.falta-aviso { display: flex; gap: 6px; align-items: flex-start; color: var(--ink); margin: 0; }
+.falta-aviso svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--primary); }

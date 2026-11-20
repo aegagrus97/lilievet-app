@@ -25,6 +25,10 @@ function desdeBorrador() {
   return [d, completo ? 3 : 1];
 }
 
+// "Para continuar falta: …" bajo un botón deshabilitado
+const lista = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : xs[0]);
+const Falta = ({ que }) => (que.length ? html`<p class="small falta-aviso" role="status"><${Icon} name="alert" /> Para continuar falta ${lista(que)}.</p>` : null);
+
 export function Solicitar({ perfil }) {
   const toast = useToast();
   const P = perfil.parametros;
@@ -62,8 +66,23 @@ export function Solicitar({ perfil }) {
 
   const edadMeses = /^\d{1,2}$/.test(String(d.edad)) ? Number(d.edad) * (d.edadUnidad === 'anios' ? 12 : 1) : null;
   const motivoMin = d.servicio === 'consulta' ? 10 : 0;
-  const ok1 = d.mascota.trim().length >= 1 && d.sexo && edadMeses !== null && edadMeses <= 360 && d.motivo.trim().length >= motivoMin;
-  const ok2 = d.alcaldia && d.colonia.trim().length >= 2 && d.calle_numero.trim().length >= 3 && /^\d{5}$/.test(d.cp);
+  const largoMotivo = d.motivo.trim().length;
+  // Lo que falta en cada paso: se muestra bajo el botón para que nadie se quede sin saber por qué no avanza
+  const faltan1 = [
+    !d.mascota.trim() && 'el nombre de tu mascota',
+    !d.sexo && 'si es macho o hembra',
+    edadMeses === null && 'su edad',
+    edadMeses !== null && edadMeses > 360 && 'una edad de hasta 30 años',
+    largoMotivo < motivoMin && (largoMotivo ? `contar un poco más de qué le pasa (mínimo ${motivoMin} caracteres; llevas ${largoMotivo})` : `contar qué le pasa a tu mascota (mínimo ${motivoMin} caracteres)`),
+  ].filter(Boolean);
+  const faltan2 = [
+    !d.alcaldia && 'tu alcaldía',
+    d.colonia.trim().length < 2 && 'la colonia',
+    !/^\d{5}$/.test(d.cp) && 'el código postal de 5 dígitos',
+    d.calle_numero.trim().length < 3 && 'la calle y el número',
+  ].filter(Boolean);
+  const ok1 = !faltan1.length;
+  const ok2 = !faltan2.length;
   const elegidos = d.medicos.map((id) => (medicos || []).find((m) => m.id === id)).filter(Boolean);
   const precios = elegidos.map((m) => m.precio);
   const rango = precios.length ? (Math.min(...precios) === Math.max(...precios) ? money(precios[0]) : `${money(Math.min(...precios))} a ${money(Math.max(...precios))}`) : '';
@@ -101,10 +120,11 @@ export function Solicitar({ perfil }) {
       </div>
       <${DS.Field} as="textarea" label=${d.servicio === 'consulta' ? '¿Qué le pasa a tu mascota?' : '¿Algo que deba saber el médico? (opcional)'} maxLength=${400} value=${d.motivo} onChange=${set('motivo')}
         hint=${d.servicio === 'consulta'
-          ? 'En pocas palabras: qué notas y desde cuándo. Lo lee el médico veterinario al recibir tu solicitud para ir preparado. No escribas teléfonos ni tu dirección.'
+          ? `En pocas palabras: qué notas y desde cuándo (mínimo ${motivoMin} caracteres; llevas ${largoMotivo}). Lo lee el médico veterinario al recibir tu solicitud para ir preparado. No escribas teléfonos ni tu dirección.`
           : 'Por ejemplo, su última vacuna o desparasitación. No escribas teléfonos ni tu dirección.'} />
       <p class="small muted">Si tu mascota tiene dificultad para respirar, convulsiones, sangrado abundante o se envenenó, no esperes: llévala a un hospital veterinario.</p>
       <div class="row"><${DS.Button} disabled=${!ok1} onClick=${() => setPaso(2)}>Continuar<//></div>
+      <${Falta} que=${faltan1} />
     </section>`}
 
     ${paso === 2 && html`<section class="box stack">
@@ -118,6 +138,7 @@ export function Solicitar({ perfil }) {
       <${DS.Field} label="Calle y número" maxLength=${120} autoComplete="address-line1" value=${d.calle_numero} onChange=${set('calle_numero')} />
       <${DS.Field} label="Referencias (opcional)" maxLength=${200} value=${d.referencias} onChange=${set('referencias')} hint="Color de la fachada, entre qué calles, número interior." />
       <div class="row"><${DS.Button} variant="secondary" onClick=${() => setPaso(1)}>Atrás<//><${DS.Button} disabled=${!ok2} onClick=${() => setPaso(3)}>Continuar<//></div>
+      <${Falta} que=${faltan2} />
     </section>`}
 
     ${paso === 3 && html`<section class="box stack">
@@ -137,6 +158,7 @@ export function Solicitar({ perfil }) {
         </div>
         <p class="small muted">El médico veterinario llega dentro del bloque de dos horas que elijas.</p>`}
       <div class="row"><${DS.Button} variant="secondary" onClick=${() => setPaso(2)}>Atrás<//><${DS.Button} disabled=${!d.inicia_at} onClick=${() => setPaso(4)}>Continuar<//></div>
+      ${bloques && bloques.length > 0 && html`<${Falta} que=${d.inicia_at ? [] : ['elegir un día y un horario']} />`}
     </section>`}
 
     ${paso === 4 && html`<section class="box stack">
@@ -165,6 +187,7 @@ export function Solicitar({ perfil }) {
         })}
       </div>
       <div class="row"><${DS.Button} variant="secondary" onClick=${() => setPaso(3)}>Atrás<//><${DS.Button} disabled=${!d.medicos.length} onClick=${() => setPaso(5)}>Continuar<//></div>
+      ${medicos && medicos.length > 0 && html`<${Falta} que=${d.medicos.length ? [] : ['elegir al menos un médico veterinario']} />`}
     </section>`}
 
     ${paso === 5 && html`<section class="box stack">
@@ -190,6 +213,7 @@ export function Solicitar({ perfil }) {
       ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
       <div class="row"><${DS.Button} variant="secondary" onClick=${() => setPaso(4)}>Atrás<//>
         <${DS.Button} disabled=${st.ocupado || !d.no_es_urgencia || !d.acepta_transferencia} onClick=${enviar}>${st.ocupado ? 'Enviando…' : 'Enviar solicitud'}<//></div>
+      <${Falta} que=${[!d.no_es_urgencia && 'confirmar que no es una urgencia', !d.acepta_transferencia && 'aceptar que compartamos tus datos con el médico que confirme'].filter(Boolean)} />
     </section>`}
   </div>`;
 }
