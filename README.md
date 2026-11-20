@@ -64,6 +64,10 @@ Los avisos por correo salen por **Resend** (cuenta abierta con catiamimbrera@gma
 2. En Supabase → **Edge Functions → Secrets**, cambiar `MAIL_FROM` a `LilieVET <avisos@tudominio.mx>`. La clave `RESEND_API_KEY` no cambia.
 3. Probar con una cuenta que use otro correo (por ejemplo, la veterinaria de prueba).
 
+### Pendiente: diseño del correo de avisos (20 nov 2026)
+
+En el correo que llega (Edge Function `supabase/functions/enviar-avisos`), la línea "No es un servicio de urgencias." del pie se ve mal: va pegada al final del texto plano, sin separación ni formato. Acomodarla mejor (por ejemplo, una versión HTML del correo con un pie separado y más discreto, conservando la versión de texto).
+
 ## Ver el diseño sin conectar nada
 
 `?demo=tutor`, `?demo=mvz`, `?demo=mvz-nuevo` o `?demo=admin` abren la app con datos de ejemplo que viven solo en la memoria del navegador.
