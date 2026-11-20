@@ -99,6 +99,13 @@ El código ya está listo en `supabase/functions/enviar-avisos`: cada aviso (por
 2. Una plantilla aprobada, categoría **utilidad**, idioma es_MX, con dos variables: `{{1}}` = título del aviso y `{{2}}` = enlace. Ejemplo: "LilieVET: {{1}}. Entra aquí: {{2}}".
 3. En Supabase → Edge Functions → Secrets: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` y `WHATSAPP_TEMPLATE` (el nombre de la plantilla).
 
+### Pendiente: revisar las ganancias con los primeros cobros reales (20 nov 2026)
+
+El bloque Ganancias del Panel (Resumen) usa la comisión, el depósito y las retenciones que reporta Mercado Pago en cada pago. Al conectar Mercado Pago, revisar:
+
+1. **Comisión en reembolsos.** Hoy los pagos reembolsados no cuentan en la ganancia (se asume que Mercado Pago devuelve la comisión). Con el primer reembolso real, revisar en la cuenta de Mercado Pago si la comisión se devolvió; si no, agregar ese costo al cálculo.
+2. **IVA e ISR con el contador.** El IVA por pagar es una estimación (16 % de las cuotas menos el IVA de la comisión de Mercado Pago, suponiendo que la comisión que reporta Mercado Pago ya incluye IVA). El ISR no está incluido. Confirmar la fórmula con el contador, sobre todo si Mercado Pago retiene impuestos.
+
 ### Pendiente: diseño del correo de avisos (20 nov 2026)
 
 En el correo que llega (Edge Function `supabase/functions/enviar-avisos`), la línea "No es un servicio de urgencias." del pie se ve mal: va pegada al final del texto plano, sin separación ni formato. Acomodarla mejor (por ejemplo, una versión HTML del correo con un pie separado y más discreto, conservando la versión de texto).
