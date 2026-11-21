@@ -11,7 +11,7 @@ const ORDEN = ['Primera opción', 'Segunda opción', 'Tercera opción'];
 // "Buscar de nuevo" desde Inicio: la siguiente solicitud empieza con los datos de una anterior
 let borrador = null;
 export const prellenarSolicitud = (s) => { borrador = s; };
-const VACIA = { servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false };
+const VACIA = { servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false, confirma_domicilio: false };
 
 // Borrador en esta pestaña (sessionStorage): sobrevive a recargar la página y se borra al cerrar la pestaña.
 // Lleva el domicilio, así que no se guarda de forma permanente. Caduca a las 12 horas.
@@ -21,7 +21,7 @@ function leerGuardado(uid) {
   try {
     const g = JSON.parse(sessionStorage.getItem(claveBorrador(uid)) || 'null');
     if (!g || typeof g !== 'object' || !g.d || Date.now() - g.guardado > DOCE_H) return null;
-    const d = { ...VACIA, ...g.d, no_es_urgencia: false, acepta_transferencia: false }; // el consentimiento se vuelve a pedir
+    const d = { ...VACIA, ...g.d, no_es_urgencia: false, acepta_transferencia: false, confirma_domicilio: false }; // el consentimiento se vuelve a pedir
     let paso = Math.min(Math.max(Number(g.paso) || 1, 1), 5);
     if (d.inicia_at && new Date(d.inicia_at).getTime() < Date.now()) { d.inicia_at = null; d.medicos = []; }
     if (paso >= 4 && !d.inicia_at) paso = 3;
@@ -29,7 +29,7 @@ function leerGuardado(uid) {
     return [d, paso];
   } catch (e) { return null; }
 }
-const vacio = (d) => JSON.stringify({ ...d, no_es_urgencia: false, acepta_transferencia: false }) === JSON.stringify(VACIA);
+const vacio = (d) => JSON.stringify({ ...d, no_es_urgencia: false, acepta_transferencia: false, confirma_domicilio: false }) === JSON.stringify(VACIA);
 export const guardarBorrador = (uid, d, paso) => {
   try {
     if (paso === 1 && vacio(d)) sessionStorage.removeItem(claveBorrador(uid)); // nada que guardar todavía
@@ -149,7 +149,7 @@ export function Solicitar({ perfil }) {
 
   const enviar = async () => {
     const { edad, edadUnidad, ...resto } = d;
-    const id = await correr(() => api.crearSolicitud({ ...resto, mascota: d.mascota.trim(), motivo: d.motivo.trim(), edad_meses: edadMeses, no_es_urgencia: 'true', acepta_transferencia: 'true' }));
+    const id = await correr(() => api.crearSolicitud({ ...resto, mascota: d.mascota.trim(), motivo: d.motivo.trim(), edad_meses: edadMeses, no_es_urgencia: 'true', acepta_transferencia: 'true', confirma_domicilio: 'true' }));
     if (id) { borrarBorrador(perfil.id); toast('Solicitud enviada.', { sparks: true }); ir('consultas'); }
   };
 
@@ -270,6 +270,8 @@ export function Solicitar({ perfil }) {
         payNow=${P.cuota} payNowLabel="Cuota de servicio LilieVET · se paga aquí cuando un médico acepte" />
       <p class="small muted">Hoy no se cobra nada. La cuota incluye IVA. Vacunas, medicamentos y productos también se pagan directo al médico veterinario.</p>
       <div class="stack-sm">
+        <label class="check"><input type="checkbox" checked=${d.confirma_domicilio} onChange=${set('confirma_domicilio')} />
+          <span>Confirmo que <b>mi domicilio es correcto</b>: ${d.calle_numero}, ${d.colonia}, ${d.alcaldia}, C.P. ${d.cp}. Si no corresponde, el médico veterinario puede cancelar la consulta.</span></label>
         <label class="check"><input type="checkbox" checked=${d.no_es_urgencia} onChange=${set('no_es_urgencia')} />
           <span>Confirmo que <b>no es una urgencia</b>. Entiendo que LilieVET no es un servicio de urgencias.</span></label>
         <label class="check"><input type="checkbox" checked=${d.acepta_transferencia} onChange=${set('acepta_transferencia')} />
@@ -278,8 +280,8 @@ export function Solicitar({ perfil }) {
       ${elegidos[0] && html`<p class="small muted">${elegidos.length === 1 ? leyenda(elegidos[0]) + '.' : 'El servicio lo presta el médico veterinario independiente que acepte tu solicitud; verás su nombre y cédula al confirmarse.'}</p>`}
       ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
       <div class="row"><${DS.Button} variant="secondary" onClick=${() => setPaso(4)}>Atrás<//>
-        <${DS.Button} disabled=${st.ocupado || !d.no_es_urgencia || !d.acepta_transferencia} onClick=${enviar}>${st.ocupado ? 'Enviando…' : 'Enviar solicitud'}<//></div>
-      <${Falta} que=${[!d.no_es_urgencia && 'confirmar que no es una urgencia', !d.acepta_transferencia && 'aceptar que compartamos tus datos con el médico que confirme'].filter(Boolean)} />
+        <${DS.Button} disabled=${st.ocupado || !d.confirma_domicilio || !d.no_es_urgencia || !d.acepta_transferencia} onClick=${enviar}>${st.ocupado ? 'Enviando…' : 'Enviar solicitud'}<//></div>
+      <${Falta} que=${[!d.confirma_domicilio && 'confirmar que tu domicilio es correcto', !d.no_es_urgencia && 'confirmar que no es una urgencia', !d.acepta_transferencia && 'aceptar que compartamos tus datos con el médico que confirme'].filter(Boolean)} />
     </section>`}
   </div>`;
 }

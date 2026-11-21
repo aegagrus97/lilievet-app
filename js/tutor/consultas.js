@@ -101,6 +101,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
       <${DS.Badge} tone=${tono}>${palabra}<//>
     </div>
     <p class="small">${texto}</p>
+    ${s.estado === 'cancelada_mvz' && s.motivo_cierre && html`<p class="small"><b>Motivo del médico:</b> ${s.motivo_cierre}</p>`}
 
     ${s.estado === 'buscando' && html`<ul class="hist">${(s.opciones || []).map((o) => html`<li key=${o.orden}>
       <div class="spread"><span>${o.orden}. ${o.nombre}</span><span class="small muted">${OPCION[o.estado]}${o.estado === 'pendiente' && o.vence_at ? ` · le quedan ${falta(o.vence_at)}` : ''}</span></div></li>`)}</ul>`}

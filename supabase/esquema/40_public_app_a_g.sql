@@ -172,6 +172,9 @@ begin
   if coalesce(p ->> 'acepta_transferencia', '') <> 'true' then
     perform privado.error('Para solicitar, acepta que compartamos tus datos de contacto con el médico veterinario que confirme tu consulta.');
   end if;
+  if coalesce(p ->> 'confirma_domicilio', '') <> 'true' then
+    perform privado.error('Confirma que tu domicilio es correcto.');
+  end if;
   if v_servicio is null or v_servicio not in ('consulta', 'vacunacion', 'desparasitacion') then perform privado.error('Elige un servicio.'); end if;
   if v_alcaldia is null or not (v_alcaldia = any (privado.alcaldias())) then perform privado.error('Elige una alcaldía o municipio de la lista.'); end if;
   if coalesce(p ->> 'especie', '') not in ('perro', 'gato') then perform privado.error('Elige perro o gato.'); end if;
