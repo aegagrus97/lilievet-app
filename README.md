@@ -144,6 +144,13 @@ El motivo por domicilio es la fila "El domicilio no corresponde a la zona".
 - A la tercera, la cuenta se suspende sola: deja de recibir solicitudes nuevas (las que esperaban su respuesta pasan a la siguiente opción del tutor), sigue viendo y atendiendo sus consultas confirmadas, y al Panel le llega un aviso.
 - Al reactivarlo desde el Panel, las advertencias vuelven a cero.
 
+## Regla: código de visita y versión del médico (20 nov 2026)
+
+Para que un tutor no pueda decir que el médico no fue y pedir la cuota de vuelta sin prueba:
+
+- **Código de visita.** Cada consulta tiene un código de 4 números (`app.solicitudes.codigo_visita`). El tutor lo ve en su consulta confirmada y se lo da al médico al llegar. El médico lo escribe en Solicitudes (de 1 hora antes a 6 horas después del horario; máximo 10 intentos por hora) y queda guardada la hora (`llegada_at`). Sirve como prueba en el Panel y ante un contracargo en Mercado Pago.
+- **Versión del médico.** Si el tutor reporta "El médico no se presentó" o pide reembolso, al médico le llega un aviso para contar su versión en 48 horas desde la consulta en Solicitudes. En el Panel, cada reporte muestra si hubo registro de llegada con código y la versión del médico antes de decidir.
+
 ## Ver el diseño sin conectar nada
 
 `?demo=tutor`, `?demo=mvz`, `?demo=mvz-nuevo` o `?demo=admin` abren la app con datos de ejemplo que viven solo en la memoria del navegador.

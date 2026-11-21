@@ -26,7 +26,7 @@ function solicitudesTutor() {
   return [
     { id: 's1', servicio: 'consulta', mascota: 'Liebe', especie: 'perro', sexo: 'hembra', edad_meses: 40, motivo: 'Se rasca mucho las orejas desde hace una semana y sacude la cabeza.', ...dom, inicia_at: a, termina_at: mas2(a), estado: 'por_pagar', cuota: 120, precio_servicio: 650, pagar_antes_de: en(9), reagendas: 0, created_at: en(-3),
       opciones: [{ orden: 1, estado: 'rechazada', nombre: MEDICOS[1].nombre }, { orden: 2, estado: 'aceptada', nombre: MEDICOS[0].nombre }], medico: legM(MEDICOS[0]), pago: 'creado', reportes: [] },
-    { id: 's2', servicio: 'vacunacion', mascota: 'Lilie', especie: 'gato', ...dom, inicia_at: b, termina_at: mas2(b), estado: 'confirmada', cuota: 120, precio_servicio: 600, reagendas: 0, created_at: en(-30),
+    { id: 's2', servicio: 'vacunacion', mascota: 'Lilie', especie: 'gato', ...dom, inicia_at: b, termina_at: mas2(b), estado: 'confirmada', cuota: 120, precio_servicio: 600, reagendas: 0, created_at: en(-30), codigo_visita: '4827', llegada_at: null,
       reagenda_propuesta_at: bloque(5, 10), opciones: [{ orden: 1, estado: 'aceptada', nombre: MEDICOS[1].nombre }], medico: legM(MEDICOS[1], '5523456789'), pago: 'aprobado', reportes: [] },
     { id: 's3', servicio: 'desparasitacion', mascota: 'Liebe', especie: 'perro', ...dom, inicia_at: c, termina_at: mas2(c), estado: 'buscando', cuota: 120, reagendas: 0, created_at: en(-0.4),
       opciones: [{ orden: 1, estado: 'pendiente', nombre: MEDICOS[2].nombre, vence_at: en(0.6) }, { orden: 2, estado: 'en_espera', nombre: MEDICOS[0].nombre }, { orden: 3, estado: 'en_espera', nombre: MEDICOS[1].nombre }], medico: null, pago: null, reportes: [] },
@@ -42,7 +42,7 @@ function solicitudesMvz() {
     { id: 'q1', servicio: 'consulta', especie: 'perro', sexo: 'macho', edad_meses: 84, motivo: 'Cojea de la pata trasera derecha desde ayer, come bien.', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: b, termina_at: mas2(b), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.7) }, reagendas: 0 },
     { id: 'q2', servicio: 'vacunacion', especie: 'gato', sexo: 'hembra', edad_meses: 4, alcaldia: 'Benito Juárez', colonia: 'Narvarte', inicia_at: d, termina_at: mas2(d), estado: 'buscando', oferta: { estado: 'pendiente', vence_at: en(0.3) }, reagendas: 0 },
     { id: 'q3', servicio: 'consulta', especie: 'gato', sexo: 'macho', edad_meses: 30, motivo: 'Vomita después de comer desde hace tres días.', alcaldia: 'Coyoacán', colonia: 'Copilco', inicia_at: c, termina_at: mas2(c), estado: 'por_pagar', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0 },
-    { id: 'q4', servicio: 'consulta', especie: 'perro', reagendas: 0, reagenda_propuesta_at: bloque(4, 14), reagenda_por: 'tutor', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: a, termina_at: mas2(a), estado: 'confirmada', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0,
+    { id: 'q4', servicio: 'consulta', especie: 'perro', reagendas: 0, reagenda_propuesta_at: bloque(4, 14), reagenda_por: 'tutor', alcaldia: 'Coyoacán', colonia: 'Del Carmen', inicia_at: a, termina_at: mas2(a), estado: 'confirmada', precio_servicio: 650, oferta: { estado: 'aceptada' }, reagendas: 0, puede_registrar_llegada: true, llegada_at: null, reportes_tutor: [{ id: 'rt1', tipo: 'reembolso', detalle: 'El médico llegó una hora tarde y no pudo revisar bien a mi perro.', estado: 'abierto', version_medico: null, created_at: en(-2) }],
       contacto: { nombre: 'Tania Herrera Luna', telefono: '5512345678', mascota: 'Liebe', calle_numero: 'Viena 120, int. 3', cp: '04100', referencias: 'Portón verde, timbre 3' } },
   ];
 }
@@ -70,7 +70,7 @@ export function demoApi(quien) {
     ...MEDICOS.map((m, i) => ({ id: m.id, nombre: m.nombre.split(' ')[0], apellidos: m.nombre.split(' ').slice(1).join(' '), correo: `medico${i + 1}@ejemplo.mx`, telefono: '55' + String(23456789 + i), estado: 'aprobado', cedula: m.cedula,
       cedula_verificada_at: m.cedula_verificada_at, identidad_verificada_at: m.cedula_verificada_at, medios_pago: m.medios_pago, zonas: ['Coyoacán'], bloques: 12, precio_consulta: m.precio, comparte_telefono: true, recibe_solicitudes: true, created_at: en(-24 * 40) })),
   ];
-  const reportes = [{ id: 'r1', tipo: 'inasistencia_mvz', detalle: 'Esperé dos horas y el médico no llegó ni contestó el teléfono.', estado: 'abierto', created_at: en(-5), solicitud_id: 's9', autor: 'Tomás Rivas', autor_rol: 'tutor', autor_telefono: '5500000002', autor_correo: 'tomas@ejemplo.mx', solicitud_estado: 'realizada', inicia_at: bloque(-1, 10), servicio: 'consulta', medico: MEDICOS[2].nombre, medico_telefono: '5523456791', pago: 'aprobado' }];
+  const reportes = [{ id: 'r1', tipo: 'inasistencia_mvz', detalle: 'Esperé dos horas y el médico no llegó ni contestó el teléfono.', estado: 'abierto', created_at: en(-5), solicitud_id: 's9', autor: 'Tomás Rivas', autor_rol: 'tutor', autor_telefono: '5500000002', autor_correo: 'tomas@ejemplo.mx', solicitud_estado: 'realizada', inicia_at: bloque(-1, 10), servicio: 'consulta', medico: MEDICOS[2].nombre, medico_telefono: '5523456791', pago: 'aprobado', llegada_at: null, version_medico: 'Llegué a las 10:20, toqué el timbre varias veces y llamé al tutor dos veces sin respuesta.', version_medico_at: en(-3) }];
   let sesion = { user: { id: perfil.id } };
   const oyentes = new Set();
 
@@ -132,6 +132,8 @@ export function demoApi(quien) {
     },
     cancelarComoMvz: async (id) => { solsM = solsM.filter((x) => x.id !== id); },
     proponerReagenda: async (id, inicia) => { solsM.find((x) => x.id === id).reagenda_propuesta_at = inicia; },
+    registrarLlegada: async (id, codigo) => { if (codigo !== '4827') return { ok: false }; Object.assign(solsM.find((x) => x.id === id), { llegada_at: en(0), puede_registrar_llegada: false }); return { ok: true }; },
+    responderReporteMvz: async (id, version) => { solsM.forEach((x) => (x.reportes_tutor || []).forEach((r) => { if (r.id === id) Object.assign(r, { version_medico: version, version_medico_at: en(0) }); })); },
 
     mfaEstado: async () => ({ nivel: 'aal2', factor: { id: 'f1' } }),
     mfaInscribir: async () => ({ id: 'f1', qr: '', secreto: 'EJEMPLO' }),

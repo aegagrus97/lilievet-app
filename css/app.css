@@ -457,3 +457,9 @@ label.lv-btn:focus-within { box-shadow: var(--focus-ring); }
 
 /* Zonas del médico: Estado de México plegable */
 .zonas-edomex summary { cursor: pointer; padding: 4px 0; }
+
+/* Código de visita (tutor) */
+.codigo-visita { display: flex; gap: 16px; align-items: center; padding: 12px 16px; border-radius: 12px; background: var(--surface-soft); border: 1px solid var(--line); }
+.codigo-visita > div { display: flex; flex-direction: column; white-space: nowrap; }
+.codigo-visita b { font-size: 28px; letter-spacing: 6px; font-variant-numeric: tabular-nums; }
+.codigo-visita p { margin: 0; }

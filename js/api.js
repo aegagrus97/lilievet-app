@@ -132,6 +132,8 @@ function supabaseApi() {
     responderSolicitud: (id, acepta) => rpc('responder_solicitud', { p_solicitud: id, p_acepta: acepta }),
     cancelarComoMvz: (id, motivo) => rpc('cancelar_como_mvz', { p_solicitud: id, p_motivo: motivo }),
     proponerReagenda: (id, inicia) => rpc('proponer_reagenda', { p_solicitud: id, p_inicia_at: inicia }),
+    registrarLlegada: (id, codigo) => rpc('registrar_llegada', { p_solicitud: id, p_codigo: codigo }),
+    responderReporteMvz: (id, version) => rpc('responder_reporte_mvz', { p_reporte: id, p_version: version }),
 
     // Panel: doble factor (app de autenticación)
     async mfaEstado() {

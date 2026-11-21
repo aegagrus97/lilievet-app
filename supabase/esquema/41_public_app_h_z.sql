@@ -176,6 +176,11 @@ begin
     perform privado.error('Ya tenemos un reporte abierto de este tipo para esa consulta. Lo estamos revisando.');
   end;
   perform privado.avisar_admins('reporte', 'Reporte nuevo', 'Hay un reporte nuevo por revisar en el Panel.', p_solicitud);
+  -- Se pide la versión del médico antes de decidir
+  if p.rol = 'tutor' and p_tipo in ('inasistencia_mvz', 'reembolso') and s.mvz_id is not null then
+    perform privado.avisar(s.mvz_id, 'reporte_mvz', 'El tutor reportó un problema con una consulta',
+      'Cuéntanos tu versión en las próximas 48 horas desde Solicitudes, en la consulta del ' || privado.cuando(s.inicia_at) || '. La revisamos antes de decidir.', s.id);
+  end if;
 end $function$
 ;
 
@@ -401,5 +406,48 @@ begin
   update app.solicitudes set reagenda_propuesta_at = p_inicia_at, reagenda_por = 'tutor' where id = s.id;
   perform privado.avisar(s.mvz_id, 'reagenda', 'El tutor pide otro horario',
     'Pide mover la consulta del ' || privado.cuando(s.inicia_at) || ' al ' || privado.cuando(p_inicia_at) || '. Entra a LilieVET para aceptar o conservar el horario.', s.id);
+end $function$
+;
+
+-- El médico registra que llegó: escribe el código de visita que le da el tutor
+CREATE OR REPLACE FUNCTION public.registrar_llegada(p_solicitud uuid, p_codigo text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare y app.perfiles := privado.yo('mvz'); s app.solicitudes;
+begin
+  select * into s from app.solicitudes where id = p_solicitud and mvz_id = y.id for update;
+  if not found or s.estado not in ('confirmada', 'realizada') then perform privado.error('Esta consulta no está confirmada.'); end if;
+  if s.llegada_at is not null then perform privado.error('Ya registraste tu llegada a esta consulta.'); end if;
+  if now() < s.inicia_at - interval '1 hour' or now() > s.termina_at + interval '6 hours' then
+    perform privado.error('El código se registra desde una hora antes del horario hasta seis horas después.');
+  end if;
+  -- Máximo 10 intentos por hora. Un código equivocado no lanza error (así el intento sí queda contado)
+  perform privado.limitar('codigo_visita', 10, interval '1 hour');
+  if coalesce(btrim(p_codigo), '') <> s.codigo_visita then return jsonb_build_object('ok', false); end if;
+  update app.solicitudes set llegada_at = now() where id = s.id;
+  perform privado.auditar('llegada_mvz', 'solicitud', s.id::text);
+  return jsonb_build_object('ok', true, 'llegada_at', now());
+end $function$
+;
+
+-- El médico responde a un reporte del tutor (no se ha presentado / reembolso) con su versión
+CREATE OR REPLACE FUNCTION public.responder_reporte_mvz(p_reporte uuid, p_version text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare y app.perfiles := privado.yo('mvz'); r app.reportes; v text := privado.txt(p_version, 10, 1000, 'Tu versión (al menos 10 caracteres)');
+begin
+  select r2.* into r from app.reportes r2 join app.solicitudes s on s.id = r2.solicitud_id
+    where r2.id = p_reporte and s.mvz_id = y.id and r2.tipo in ('inasistencia_mvz', 'reembolso') for update of r2;
+  if not found then perform privado.error('No encontramos ese reporte.'); end if;
+  if r.estado <> 'abierto' then perform privado.error('Este reporte ya se resolvió.'); end if;
+  update app.reportes set version_medico = v, version_medico_at = now() where id = r.id;
+  perform privado.avisar_admins('reporte', 'El médico respondió un reporte', 'Ya está la versión del médico en el Panel, en Reportes.', r.solicitud_id);
+  perform privado.auditar('version_medico', 'reporte', r.id::text);
 end $function$
 ;

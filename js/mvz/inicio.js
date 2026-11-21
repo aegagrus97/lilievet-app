@@ -91,6 +91,51 @@ function Oferta({ s, precio, recargar }) {
   </article>`;
 }
 
+// Al llegar, el médico escribe el código que le da el tutor: queda la prueba de la visita
+function Llegada({ s, recargar }) {
+  const toast = useToast();
+  const [codigo, setCodigo] = useState('');
+  const [st, correr] = useAccion();
+  const [mal, setMal] = useState(false);
+  const registrar = async () => {
+    setMal(false);
+    const r = await correr(() => api.registrarLlegada(s.id, codigo));
+    if (!r) return;
+    if (r.ok === false) { setMal(true); return; }
+    toast('Llegada registrada.'); recargar();
+  };
+  if (s.llegada_at) return html`<p class="small muted">Registraste tu llegada el ${fechaHora(s.llegada_at)}.</p>`;
+  if (!s.puede_registrar_llegada) return s.estado === 'confirmada' ? html`<p class="small muted">Al llegar, pídele al tutor su <b>código de visita</b> de 4 números y escríbelo aquí. Es tu prueba de que acudiste.</p>` : null;
+  return html`<div class="sub-box stack-sm">
+    <p class="small"><b>Registra tu llegada.</b> Pídele al tutor su código de visita (4 números) y escríbelo aquí. Es tu prueba de que acudiste si hay un reclamo.</p>
+    <div class="row" style=${{ alignItems: 'flex-end' }}>
+      <${DS.Field} label="Código de visita" inputMode="numeric" maxLength=${4} value=${codigo} onChange=${(e) => { setCodigo(e.target.value.replace(/\D/g, '').slice(0, 4)); setMal(false); }} />
+      <${DS.Button} size="sm" disabled=${st.ocupado || codigo.length !== 4} onClick=${registrar}>${st.ocupado ? 'Revisando…' : 'Registrar llegada'}<//>
+    </div>
+    ${mal && html`<${DS.Notice} tone="error">El código no coincide. Pídeselo de nuevo al tutor.<//>`}
+    ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
+  </div>`;
+}
+
+// Reporte del tutor (no se presentó / reembolso): el médico cuenta su versión antes de que el Panel decida
+function VersionReporte({ r, recargar }) {
+  const toast = useToast();
+  const [texto, setTexto] = useState('');
+  const [st, correr] = useAccion();
+  const enviar = async () => { if (await correr(() => api.responderReporteMvz(r.id, texto))) { toast('Enviamos tu versión. La revisamos antes de decidir.'); recargar(); } };
+  const tipo = r.tipo === 'inasistencia_mvz' ? 'El tutor reportó que no te presentaste.' : 'El tutor pidió un reembolso.';
+  if (r.estado !== 'abierto') return html`<p class="small muted">El reporte del tutor sobre esta consulta ya se resolvió.</p>`;
+  return html`<div class="sub-box stack-sm">
+    <p class="small"><b>${tipo}</b> "${r.detalle}"</p>
+    ${r.version_medico
+      ? html`<p class="small"><b>Tu versión</b> (enviada el ${fechaHora(r.version_medico_at)}): ${r.version_medico}</p><p class="small muted">La revisamos antes de decidir.</p>`
+      : html`<p class="small">Cuéntanos qué pasó antes del ${fechaHora(new Date(new Date(r.created_at).getTime() + 48 * H))}. Lo revisamos antes de decidir.</p>
+        <${DS.Field} as="textarea" label="Tu versión" maxLength=${1000} value=${texto} onChange=${(e) => setTexto(e.target.value)} />
+        ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
+        <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || texto.trim().length < 10} onClick=${enviar}>Enviar mi versión<//></div>`}
+  </div>`;
+}
+
 function Consulta({ s, recargar, advertencias = 0, onPerfil }) {
   const toast = useToast();
   const [modo, setModo] = useState(null);
@@ -119,6 +164,8 @@ function Consulta({ s, recargar, advertencias = 0, onPerfil }) {
       <dt>Cobras</dt><dd>${money(s.precio_servicio)}${s.servicio === 'consulta' ? '' : ' o más'}, directo al tutor</dd>
     </dl>`}
     ${c && html`<p class="small muted">Usa estos datos solo para atender esta consulta. Se ocultan tres días después.</p>`}
+    ${['confirmada', 'realizada'].includes(s.estado) && html`<${Llegada} s=${s} recargar=${recargar} />`}
+    ${(s.reportes_tutor || []).map((r) => html`<${VersionReporte} key=${r.id} r=${r} recargar=${recargar} />`)}
     ${s.reagenda_propuesta_at && s.reagenda_por !== 'tutor' && html`<${DS.Notice} tone="info">Propusiste mover la consulta a: ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Falta que el tutor responda.<//>`}
     ${s.reagenda_propuesta_at && s.reagenda_por === 'tutor' && html`<${DS.Notice} title="El tutor pide otro horario.">
       ${ventana(s.reagenda_propuesta_at, new Date(new Date(s.reagenda_propuesta_at).getTime() + 2 * H))}. Lo eligió entre tus horarios libres. Si no te acomoda, se conserva el horario actual.

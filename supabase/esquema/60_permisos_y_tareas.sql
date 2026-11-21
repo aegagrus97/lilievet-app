@@ -24,7 +24,7 @@ grant execute on function
   public.responder_reagenda(uuid, boolean), public.reportar(uuid, text, text), public.responder_encuesta(uuid, jsonb),
   public.guardar_perfil_mvz(jsonb), public.guardar_horario(jsonb), public.bloquear_dia(date, boolean),
   public.mis_solicitudes_mvz(), public.responder_solicitud(uuid, boolean), public.cancelar_como_mvz(uuid, text),
-  public.proponer_reagenda(uuid, timestamptz),
+  public.proponer_reagenda(uuid, timestamptz), public.registrar_llegada(uuid, text), public.responder_reporte_mvz(uuid, text),
   public.admin_resumen(), public.admin_medicos(), public.admin_decidir_mvz(uuid, text, boolean, boolean),
   public.admin_tutores(), public.admin_cuenta(uuid, text), public.admin_eliminar_datos(uuid),
   public.admin_solicitudes(), public.admin_cerrar_solicitud(uuid, text, text), public.admin_reportes(),

@@ -247,7 +247,8 @@ CREATE OR REPLACE FUNCTION public.admin_reportes()
 AS $function$ declare v jsonb; begin
   perform privado.exigir_admin();
   select coalesce(jsonb_agg(x order by (x.estado = 'abierto') desc, x.created_at desc), '[]'::jsonb) into v from (
-    select r.id, r.tipo, r.detalle, r.estado, r.decision, r.resolucion, r.version_medico, r.created_at, r.resuelto_at, r.solicitud_id,
+    select r.id, r.tipo, r.detalle, r.estado, r.decision, r.resolucion, r.version_medico, r.version_medico_at, r.created_at, r.resuelto_at, r.solicitud_id,
+      s.llegada_at,
       a.nombre || ' ' || a.apellidos as autor, a.rol as autor_rol, a.telefono as autor_telefono, a.correo as autor_correo,
       s.estado as solicitud_estado, s.inicia_at, s.servicio,
       (select pm.nombre || ' ' || pm.apellidos from app.perfiles pm where pm.id = s.mvz_id) as medico,
@@ -284,7 +285,9 @@ begin
     end if;
   end if;
 
-  update app.reportes set estado = 'resuelto', decision = p_decision, version_medico = privado.txt(p_version_medico, 0, 1000, 'La versión del médico'),
+  -- Si el médico ya respondió desde la app y el Panel no escribe nada, se conserva su versión
+  update app.reportes set estado = 'resuelto', decision = p_decision,
+    version_medico = coalesce(nullif(privado.txt(p_version_medico, 0, 1000, 'La versión del médico'), ''), version_medico),
     resolucion = privado.txt(p_resolucion, 5, 1000, 'La respuesta'), resuelto_por = auth.uid(), resuelto_at = now() where id = r.id;
   perform privado.avisar(r.autor_id, 'reporte', 'Respondimos tu reporte', 'Entra a LilieVET para ver la respuesta.', r.solicitud_id);
   perform privado.auditar('resolver_reporte', 'reporte', r.id::text, jsonb_build_object('decision', p_decision));

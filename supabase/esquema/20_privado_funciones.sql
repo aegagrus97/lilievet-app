@@ -343,6 +343,14 @@ AS $function$
     'oferta', (select jsonb_build_object('estado', o.estado, 'vence_at', o.vence_at) from app.solicitud_opciones o where o.solicitud_id = s.id and o.mvz_id = p_mvz),
     'reagendas', s.reagendas, 'reagenda_propuesta_at', case when s.mvz_id = p_mvz then s.reagenda_propuesta_at end,
     'reagenda_por', case when s.mvz_id = p_mvz then s.reagenda_por end,
+    -- Código de visita: el médico lo pide al tutor al llegar (de 1 h antes a 6 h después del horario)
+    'llegada_at', case when s.mvz_id = p_mvz then s.llegada_at end,
+    'puede_registrar_llegada', s.mvz_id = p_mvz and s.estado in ('confirmada', 'realizada') and s.llegada_at is null
+                               and now() between s.inicia_at - interval '1 hour' and s.termina_at + interval '6 hours',
+    -- Reportes del tutor sobre esta consulta que esperan la versión del médico
+    'reportes_tutor', case when s.mvz_id = p_mvz then coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'tipo', r.tipo, 'detalle', r.detalle,
+                        'estado', r.estado, 'version_medico', r.version_medico, 'version_medico_at', r.version_medico_at, 'created_at', r.created_at) order by r.created_at)
+                      from app.reportes r where r.solicitud_id = s.id and r.autor_id = s.tutor_id and r.tipo in ('inasistencia_mvz', 'reembolso')), '[]'::jsonb) end,
     'contacto', case when s.mvz_id = p_mvz and (s.estado = 'confirmada' or (s.estado = 'realizada' and s.termina_at > now() - interval '3 days')) then
       (select jsonb_build_object('nombre', pf.nombre || ' ' || pf.apellidos, 'telefono', pf.telefono, 'mascota', s.mascota,
         'calle_numero', s.calle_numero, 'cp', s.cp, 'referencias', s.referencias) from app.perfiles pf where pf.id = s.tutor_id) end
@@ -362,6 +370,9 @@ AS $function$
     'inicia_at', s.inicia_at, 'termina_at', s.termina_at, 'estado', s.estado, 'cuota', s.cuota,
     'precio_servicio', s.precio_servicio, 'pagar_antes_de', s.pagar_antes_de, 'reagendas', s.reagendas,
     'reagenda_propuesta_at', s.reagenda_propuesta_at, 'reagenda_por', s.reagenda_por, 'motivo_cierre', s.motivo_cierre, 'created_at', s.created_at,
+    -- El tutor ve su código de visita mientras el médico puede registrarlo
+    'codigo_visita', case when s.estado in ('confirmada', 'realizada') and s.llegada_at is null and now() < s.termina_at + interval '6 hours' then s.codigo_visita end,
+    'llegada_at', s.llegada_at,
     'opciones', (select jsonb_agg(jsonb_build_object('orden', o.orden, 'estado', o.estado, 'vence_at', o.vence_at,
                    'nombre', pf.nombre || ' ' || pf.apellidos) order by o.orden)
                  from app.solicitud_opciones o join app.perfiles pf on pf.id = o.mvz_id where o.solicitud_id = s.id),

@@ -103,6 +103,9 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
     </div>
     <p class="small">${texto}</p>
     ${s.estado === 'cancelada_mvz' && s.motivo_cierre && html`<p class="small"><b>Motivo del médico:</b> ${s.motivo_cierre}</p>`}
+    ${s.codigo_visita && html`<div class="codigo-visita"><div><span class="small muted">Código de visita</span><b>${s.codigo_visita}</b></div>
+      <p class="small">Dáselo al médico veterinario cuando llegue a tu domicilio, no antes. Así queda registrado que te atendió.</p></div>`}
+    ${s.llegada_at && html`<p class="small muted">El médico veterinario registró su llegada el ${fechaHora(s.llegada_at)}.</p>`}
 
     ${s.estado === 'buscando' && html`<ul class="hist">${(s.opciones || []).map((o) => html`<li key=${o.orden}>
       <div class="spread"><span>${o.orden}. ${o.nombre}</span><span class="small muted">${OPCION[o.estado]}${o.estado === 'pendiente' && o.vence_at ? ` · le quedan ${falta(o.vence_at)}` : ''}</span></div></li>`)}</ul>`}

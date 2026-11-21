@@ -199,10 +199,15 @@ function Reporte({ r, recargar }) {
     </div>
     <p style=${{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>${r.detalle}</p>
     ${r.solicitud_id && html`<p class="small muted">${SERVICIO[r.servicio]} del ${fechaHora(r.inicia_at)} · estado: ${(ESTADO[r.solicitud_estado] || [0, r.solicitud_estado])[1].toLowerCase()} · médico: ${r.medico || 'sin asignar'}${r.medico_telefono ? ` (${telBonito(r.medico_telefono)})` : ''} · cuota: ${r.pago ? PAGO[r.pago].toLowerCase() : 'sin cobro'}</p>`}
-    ${!abierto && html`<p class="small"><b>Respuesta:</b> ${r.resolucion}${r.version_medico ? html` <br /><b>Versión del médico:</b> ${r.version_medico}` : ''}</p>`}
+    ${r.solicitud_id && r.autor_rol === 'tutor' && ['inasistencia_mvz', 'reembolso'].includes(r.tipo) && html`<p class="small">${r.llegada_at
+      ? html`<b>Llegada del médico:</b> registrada con el código del tutor el ${fechaHora(r.llegada_at)}. Hay prueba de que acudió.`
+      : html`<b>Llegada del médico:</b> sin registro con código de visita.`}</p>`}
+    ${r.version_medico && html`<p class="small"><b>Versión del médico${r.version_medico_at ? ` (desde la app, ${fechaHora(r.version_medico_at)})` : ''}:</b> ${r.version_medico}</p>`}
+    ${abierto && r.autor_rol === 'tutor' && ['inasistencia_mvz', 'reembolso'].includes(r.tipo) && !r.version_medico && html`<p class="small muted">Le pedimos su versión al médico; tiene hasta el ${fechaHora(new Date(new Date(r.created_at).getTime() + 48 * 3600e3))} para responder desde la app.</p>`}
+    ${!abierto && html`<p class="small"><b>Respuesta:</b> ${r.resolucion}</p>`}
     ${abierto && html`<div class="stack">
-      ${r.tipo === 'inasistencia_mvz' && html`<${DS.Notice} tone="info">Pide su versión al médico veterinario. Si no hay prueba de que acudió, procede el reembolso.<//>`}
-      <${DS.Field} as="textarea" label="Versión del médico veterinario (opcional)" maxLength=${1000} value=${version} onChange=${(e) => setVersion(e.target.value)} />
+      ${r.tipo === 'inasistencia_mvz' && html`<${DS.Notice} tone="info">${r.llegada_at ? 'El médico registró su llegada con el código del tutor: revisa bien antes de reembolsar.' : 'Si no hay prueba de que el médico acudió, procede el reembolso.'}<//>`}
+      ${!r.version_medico && html`<${DS.Field} as="textarea" label="Versión del médico veterinario (si te la dio por otro medio, opcional)" maxLength=${1000} value=${version} onChange=${(e) => setVersion(e.target.value)} />`}
       <${DS.Field} as="textarea" label="Respuesta para quien reportó" maxLength=${1000} value=${resp} onChange=${(e) => setResp(e.target.value)} />
       ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
       <div class="row">
