@@ -128,7 +128,7 @@ Desde el 20 nov 2026 el tutor y el médico eligen el motivo de una lista (`MOTIV
 select case when estado = 'cancelada_mvz' then 'médico' else 'tutor' end as quien,
        coalesce(motivo_cierre, '(sin motivo: versión anterior)') as motivo,
        count(*) as veces,
-       round(100.0 * count(*) / sum(count(*)) over (partition by estado = 'cancelada_mvz'), 1) as porcentaje
+       round(100.0 * count(*) / sum(count(*)) over (partition by case when estado = 'cancelada_mvz' then 'médico' else 'tutor' end), 1) as porcentaje
 from app.solicitudes
 where estado in ('cancelada_mvz', 'cancelada_tutor', 'cancelada_tarde')
 group by 1, 2
