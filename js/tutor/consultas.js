@@ -78,7 +78,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
   const empezo = Date.now() >= new Date(s.inicia_at).getTime();
   const puedeReportar = ['confirmada', 'realizada'].includes(s.estado) && empezo && Date.now() < new Date(s.termina_at).getTime() + 7 * 24 * H;
   const abierto = s.reportes.some((r) => r.estado === 'abierto');
-  const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo;
+  const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo && !s.llegada_at;
 
   const pagar = () => correr(async () => { await api.pagar(s.id); if (api.mode === 'demo') { toast('Consulta confirmada.', { sparks: true }); recargar(); } });
   // Enlace del correo/WhatsApp "médico aceptó" (…#/consultas/<id>/pagar): abre el cobro directo, una sola vez
@@ -158,7 +158,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
 
     ${!modo && html`<div class="row">
       ${puedeCambiar && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('horario')}>Pedir otro horario<//>`}
-      ${['buscando', 'por_pagar', 'confirmada'].includes(s.estado) && !empezo && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => { setMotivo(''); setModo('cancelar'); }}>Cancelar ${s.estado === 'confirmada' ? 'consulta' : 'solicitud'}<//>`}
+      ${['buscando', 'por_pagar', 'confirmada'].includes(s.estado) && !empezo && !s.llegada_at && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => { setMotivo(''); setModo('cancelar'); }}>Cancelar ${s.estado === 'confirmada' ? 'consulta' : 'solicitud'}<//>`}
       ${puedeReportar && !abierto && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('reporte')}>Reportar un problema o pedir reembolso<//>`}
     </div>`}
   </article>`;

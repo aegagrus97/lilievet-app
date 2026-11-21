@@ -143,7 +143,7 @@ function Consulta({ s, recargar, advertencias = 0, onPerfil }) {
   const [st, correr] = useAccion();
   const c = s.contacto;
   const empezo = Date.now() >= new Date(s.inicia_at).getTime();
-  const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo;
+  const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo && !s.llegada_at;
   const cancelar = async () => { if (await correr(() => api.cancelarComoMvz(s.id, motivo))) { toast('Consulta cancelada. Avisamos al tutor.'); recargar(); onPerfil && onPerfil().catch(() => {}); } };
   const responder = async (acepta) => { if (await correr(() => api.responderReagenda(s.id, acepta))) { toast(acepta ? 'Nuevo horario confirmado. Avisamos al tutor.' : 'Se conserva el horario actual. Avisamos al tutor.'); recargar(); } };
   const badge = { por_pagar: ['pendiente', 'Esperando pago del tutor'], confirmada: ['verificado', 'Confirmada'], realizada: ['completado', 'Realizada'] }[s.estado] || ['neutral', 'Cerrada'];
@@ -189,7 +189,7 @@ function Consulta({ s, recargar, advertencias = 0, onPerfil }) {
     ${modo === 'reporte' && html`<div class="sub-box"><${FormReporte} solicitudId=${s.id} tipos=${['tutor_ausente', 'otro']} onListo=${recargar} /></div>`}
     ${!modo && ['por_pagar', 'confirmada', 'realizada'].includes(s.estado) && html`<div class="row">
       ${puedeCambiar && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('reagendar')}>Proponer otro horario<//>`}
-      ${s.estado !== 'realizada' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => { setMotivo(''); setModo('cancelar'); }}>Cancelar consulta<//>`}
+      ${s.estado !== 'realizada' && !s.llegada_at && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => { setMotivo(''); setModo('cancelar'); }}>Cancelar consulta<//>`}
       ${empezo && s.estado !== 'por_pagar' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('reporte')}>Reportar un problema<//>`}
     </div>`}
   </article>`;

@@ -85,6 +85,7 @@ declare y app.perfiles := privado.yo('mvz'); s app.solicitudes; v_motivo text :=
 begin
   select * into s from app.solicitudes where id = p_solicitud and mvz_id = y.id for update;
   if not found or s.estado not in ('por_pagar', 'confirmada') then perform privado.error('Esta consulta ya no se puede cancelar.'); end if;
+  if s.llegada_at is not null then perform privado.error('Ya registraste tu llegada, así que la consulta ya no se puede cancelar. Si hubo un problema, envía un reporte.'); end if;
   update app.solicitudes set estado = 'cancelada_mvz', cerrada_at = now(), motivo_cierre = v_motivo, reagenda_propuesta_at = null where id = s.id;
   perform privado.pedir_reembolso(s.id, 'El médico veterinario canceló');
   perform privado.avisar(s.tutor_id, 'cancelada', 'Tu consulta fue cancelada',
@@ -111,6 +112,7 @@ begin
   select * into s from app.solicitudes where id = p_solicitud and tutor_id = t.id for update;
   if not found then perform privado.error('No encontramos esa solicitud.'); end if;
   if s.estado not in ('buscando', 'por_pagar', 'confirmada') then perform privado.error('Esta solicitud ya no se puede cancelar.'); end if;
+  if s.llegada_at is not null then perform privado.error('El médico veterinario ya registró su llegada. Si hubo un problema, envía un reporte.'); end if;
 
   if s.estado = 'confirmada' then
     if now() >= s.inicia_at then perform privado.error('El horario de la consulta ya empezó. Si hubo un problema, envía un reporte.'); end if;

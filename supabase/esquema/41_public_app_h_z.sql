@@ -123,6 +123,7 @@ declare y app.perfiles := privado.yo('mvz'); s app.solicitudes;
 begin
   select * into s from app.solicitudes where id = p_solicitud and mvz_id = y.id for update;
   if not found or s.estado not in ('por_pagar', 'confirmada') then perform privado.error('Solo se puede cambiar el horario de una consulta aceptada o confirmada.'); end if;
+  if s.llegada_at is not null then perform privado.error('Ya registraste tu llegada. La consulta ya no puede cambiar de horario.'); end if;
   if s.reagendas >= 1 then perform privado.error('Esta consulta ya cambió de horario una vez.'); end if;
   if s.reagenda_propuesta_at is not null then perform privado.error('Ya hay un cambio de horario pendiente de respuesta.'); end if;
   if now() >= s.inicia_at then perform privado.error('El horario de la consulta ya empezó.'); end if;
@@ -223,6 +224,7 @@ begin
   v_otro := case when p.id = s.tutor_id then s.mvz_id else s.tutor_id end;
   v_quien := case when p.id = s.tutor_id then 'El tutor' else 'El médico veterinario' end;
   if p_acepta then
+    if s.llegada_at is not null then perform privado.error('El médico veterinario ya registró su llegada. La consulta ya no puede cambiar de horario.'); end if;
     if s.reagenda_propuesta_at <= now() then perform privado.error('El horario propuesto ya pasó.'); end if;
     if s.estado = 'por_pagar' and s.reagenda_propuesta_at - interval '30 minutes' <= now() then
       perform privado.error('Ese horario es demasiado pronto para pagar la cuota a tiempo.');
@@ -393,6 +395,7 @@ declare t app.perfiles := privado.yo('tutor'); s app.solicitudes;
 begin
   select * into s from app.solicitudes where id = p_solicitud and tutor_id = t.id for update;
   if not found or s.estado not in ('por_pagar', 'confirmada') or s.mvz_id is null then perform privado.error('Esta consulta ya no puede cambiar de horario.'); end if;
+  if s.llegada_at is not null then perform privado.error('El médico veterinario ya registró su llegada. La consulta ya no puede cambiar de horario.'); end if;
   if s.reagendas >= 1 then perform privado.error('Esta consulta ya cambió de horario una vez.'); end if;
   if s.reagenda_propuesta_at is not null then perform privado.error('Ya hay un cambio de horario pendiente de respuesta.'); end if;
   if now() >= s.inicia_at then perform privado.error('El horario de la consulta ya empezó.'); end if;
