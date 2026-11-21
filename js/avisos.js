@@ -8,7 +8,7 @@ import { PageHead, useDatos, ErrorCarga, Cargando } from './shell.js';
 function destino(a, rol) {
   if (a.tipo === 'cedula') return ['#/servicios', 'Corregir cédula'];
   if (a.tipo === 'foto') return ['#/servicios', 'Subir otra foto'];
-  if (rol === 'mvz') return a.solicitud_id || a.tipo === 'alta' ? ['#/solicitudes', 'Ver solicitudes'] : null;
+  if (rol === 'mvz') return a.solicitud_id || ['alta', 'advertencia', 'suspension'].includes(a.tipo) ? ['#/solicitudes', 'Ver solicitudes'] : null;
   if (a.tipo === 'celular') return ['#/solicitar', 'Solicitar consulta'];
   if (a.tipo === 'sin_medico' || a.tipo === 'vencida') return ['#/inicio', 'Buscar de nuevo'];
   if (a.solicitud_id) return ['#/consultas/' + a.solicitud_id, a.tipo === 'aceptada' ? 'Pagar y confirmar' : 'Ver consulta'];

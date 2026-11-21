@@ -47,6 +47,7 @@ begin
                              and exists (select 1 from app.avisos a where a.destinatario_id = m.id and a.tipo = 'cedula'),
       'presentacion', m.presentacion, 'foto', m.foto, 'precio_consulta', m.precio_consulta, 'precio_vacunacion', m.precio_vacunacion,
       'precio_desparasitacion', m.precio_desparasitacion, 'medios_pago', m.medios_pago,
+      'advertencias', privado.advertencias_mvz(m.id), 'suspendido_por_cancelaciones', m.suspendido_por_cancelaciones_at is not null,
       'comparte_telefono', m.comparte_telefono_at is not null, 'recibe_solicitudes', m.recibe_solicitudes,
       'zonas', coalesce((select jsonb_agg(alcaldia order by alcaldia) from app.mvz_zonas where mvz_id = m.id), '[]'::jsonb),
       'horario', coalesce((select jsonb_agg(jsonb_build_object('dia', dia, 'hora', hora) order by dia, hora) from app.mvz_horario where mvz_id = m.id), '[]'::jsonb),

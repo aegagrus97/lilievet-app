@@ -69,6 +69,8 @@ create table app.mvz (
   comparte_telefono_at timestamp with time zone,
   recibe_solicitudes boolean not null default true,
   actualizado_at timestamp with time zone not null default now(),
+  advertencias_desde timestamp with time zone,
+  suspendido_por_cancelaciones_at timestamp with time zone,
   constraint mvz_pkey PRIMARY KEY (id),
   constraint mvz_id_fkey FOREIGN KEY (id) REFERENCES app.perfiles(id) ON DELETE CASCADE,
   constraint mvz_verificada_por_fkey FOREIGN KEY (verificada_por) REFERENCES auth.users(id),

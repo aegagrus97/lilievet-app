@@ -202,3 +202,5 @@ export const MOTIVOS_TUTOR = [
   'Mi mascota ya está mejor', 'Ya no puedo en ese horario', 'Encontré atención en otro lugar',
   'Era una urgencia y fui a un hospital', 'El costo no me conviene',
 ].map((m) => ({ label: m, valor: m }));
+// Motivos del médico que no cuentan como advertencia (igual que privado.motivos_sin_advertencia en la base)
+export const SIN_ADVERTENCIA = ['El domicilio no corresponde a la zona', 'El tutor me pidió cancelar', 'No pude contactar al tutor'];

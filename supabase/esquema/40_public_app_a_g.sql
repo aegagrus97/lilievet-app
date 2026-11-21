@@ -90,6 +90,7 @@ begin
   perform privado.avisar(s.tutor_id, 'cancelada', 'Tu consulta fue cancelada',
     'El médico veterinario canceló la consulta del ' || privado.cuando(s.inicia_at) || '. Si ya pagaste la cuota de servicio, se te reembolsa completa.', s.id);
   perform privado.auditar('cancelar_mvz', 'solicitud', s.id::text, jsonb_build_object('motivo', v_motivo));
+  perform privado.registrar_advertencia_mvz(y.id, s.id);
 end $function$
 ;
 

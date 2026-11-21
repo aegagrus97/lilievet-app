@@ -76,6 +76,67 @@ AS $function$ select array['Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez',
   'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'] || privado.municipios_edomex() $function$
 ;
 
+-- Advertencias por cancelación del médico: 3 en 90 días y la cuenta se suspende sola.
+-- No cuentan los motivos que no son culpa del médico.
+CREATE OR REPLACE FUNCTION privado.motivos_sin_advertencia()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$ select array['El domicilio no corresponde a la zona', 'El tutor me pidió cancelar', 'No pude contactar al tutor'] $function$
+;
+
+-- Cuenta cancelaciones del médico (y faltas confirmadas por el Panel) de los últimos 90 días,
+-- desde la última reactivación si la hubo
+CREATE OR REPLACE FUNCTION privado.advertencias_mvz(p_mvz uuid)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select count(*)::integer from app.solicitudes s
+  where s.mvz_id = p_mvz
+    and s.cerrada_at > greatest(now() - interval '90 days', coalesce((select advertencias_desde from app.mvz where id = p_mvz), '-infinity'::timestamptz))
+    and ((s.estado = 'cancelada_mvz' and not (coalesce(s.motivo_cierre, '') = any (privado.motivos_sin_advertencia())))
+         or s.estado = 'mvz_no_asistio')
+$function$
+;
+
+-- Se llama después de cerrar una consulta por culpa del médico: avisa la advertencia o suspende a la tercera
+CREATE OR REPLACE FUNCTION privado.registrar_advertencia_mvz(p_mvz uuid, p_solicitud uuid)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  n integer := privado.advertencias_mvz(p_mvz);
+  m app.mvz;
+  o record;
+begin
+  select * into m from app.mvz where id = p_mvz for update;
+  if not found or n = 0 then return n; end if;
+  if n < 3 then
+    perform privado.avisar(p_mvz, 'advertencia', 'Advertencia ' || n || ' de 3 por cancelación',
+      'Registramos una cancelación de tu parte. Llevas ' || n || ' de 3 en los últimos 90 días; a la tercera tu cuenta se suspende.', p_solicitud);
+  elsif m.estado = 'aprobado' then
+    update app.mvz set estado = 'suspendido', suspendido_por_cancelaciones_at = now() where id = p_mvz;
+    -- Las solicitudes que esperaban su respuesta pasan de inmediato a la siguiente opción del tutor
+    for o in select solicitud_id from app.solicitud_opciones where mvz_id = p_mvz and estado = 'pendiente' loop
+      update app.solicitud_opciones set estado = 'descartada', respondida_at = now() where solicitud_id = o.solicitud_id and mvz_id = p_mvz;
+      perform privado.ofrecer_siguiente(o.solicitud_id);
+    end loop;
+    perform privado.avisar(p_mvz, 'suspension', 'Tu cuenta fue suspendida',
+      'Llegaste a 3 cancelaciones en 90 días, así que ya no recibes solicitudes nuevas. Tus consultas confirmadas siguen en pie: atiéndelas o cancélalas desde Solicitudes. Escríbenos para revisar tu cuenta.', p_solicitud);
+    perform privado.avisar_admins('suspension', 'Médico suspendido por cancelaciones',
+      (select coalesce(nombre || ' ' || apellidos, correo) from app.perfiles where id = p_mvz)
+      || ' llegó a 3 cancelaciones en 90 días y su cuenta se suspendió. Puedes reactivarla en el Panel, en Médicos.', p_solicitud);
+    perform privado.auditar('mvz_suspendido_cancelaciones', 'mvz', p_mvz::text, jsonb_build_object('advertencias', n));
+  end if;
+  return n;
+end $function$
+;
+
 -- Alcaldía según el código postal (CDMX: los dos primeros dígitos)
 CREATE OR REPLACE FUNCTION privado.alcaldia_de_cp(p_cp text)
  RETURNS text

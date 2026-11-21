@@ -50,7 +50,7 @@ function solicitudesMvz() {
 const PERFILES = {
   tutor: { id: 't1', rol: 'tutor', nombre: 'Tania', apellidos: 'Herrera Luna', correo: 'tania@ejemplo.mx', telefono: '5512345678', telefono_verificado: true, es_admin: false, panel_abierto: false, mvz: null },
   mvz: { id: 'm1', rol: 'mvz', nombre: 'Mariana', apellidos: 'Ortega Ruiz', correo: 'mariana@ejemplo.mx', telefono: '5598765432', telefono_verificado: true, es_admin: false, panel_abierto: false,
-    mvz: { estado: 'aprobado', cedula: '10458231', cedula_verificada_at: en(-24 * 20), presentacion: MEDICOS[0].presentacion, precio_consulta: 650, precio_vacunacion: 450, precio_desparasitacion: null,
+    mvz: { estado: 'aprobado', advertencias: 1, suspendido_por_cancelaciones: false, cedula: '10458231', cedula_verificada_at: en(-24 * 20), presentacion: MEDICOS[0].presentacion, precio_consulta: 650, precio_vacunacion: 450, precio_desparasitacion: null,
       medios_pago: ['efectivo', 'transferencia', 'tarjeta'], comparte_telefono: true, recibe_solicitudes: true, zonas: ['Benito Juárez', 'Coyoacán'],
       horario: [1, 2, 3, 4, 5].flatMap((dia) => [10, 12, 16].map((hora) => ({ dia, hora }))).concat([{ dia: 6, hora: 10 }]), bloqueos: [] } },
   'mvz-nuevo': { id: 'm9', rol: 'mvz', nombre: 'Julio', apellidos: 'Méndez Ríos', correo: 'julio@ejemplo.mx', telefono: '5511223344', telefono_verificado: false, es_admin: false, panel_abierto: false,

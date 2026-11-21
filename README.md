@@ -137,6 +137,13 @@ order by 1, veces desc;
 
 El motivo por domicilio es la fila "El domicilio no corresponde a la zona".
 
+## Regla: advertencias a médicos por cancelar (20 nov 2026)
+
+- Cada cancelación del médico suma una advertencia, salvo los motivos que no son su culpa: "El domicilio no corresponde a la zona", "El tutor me pidió cancelar" y "No pude contactar al tutor" (`privado.motivos_sin_advertencia()` y `SIN_ADVERTENCIA` en `js/lib.js`). También suma cuando el Panel marca que el médico no se presentó.
+- Cuentan las de los últimos 90 días. Con 1 y 2 le llega un aviso "Advertencia n de 3"; antes de cancelar, la app le dice cuál sería.
+- A la tercera, la cuenta se suspende sola: deja de recibir solicitudes nuevas (las que esperaban su respuesta pasan a la siguiente opción del tutor), sigue viendo y atendiendo sus consultas confirmadas, y al Panel le llega un aviso.
+- Al reactivarlo desde el Panel, las advertencias vuelven a cero.
+
 ## Ver el diseño sin conectar nada
 
 `?demo=tutor`, `?demo=mvz`, `?demo=mvz-nuevo` o `?demo=admin` abren la app con datos de ejemplo que viven solo en la memoria del navegador.

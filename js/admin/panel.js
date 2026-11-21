@@ -120,13 +120,14 @@ function Medico({ m, recargar }) {
     <div class="spread" style=${{ alignItems: 'flex-start' }}>
       <div class="medico-cab"><${FotoMvz} ruta=${m.foto} nombre=${`${m.nombre} ${m.apellidos}`} tam=${64} />
         <div><h3 class="section-title">${m.nombre} ${m.apellidos}</h3><p class="small muted">${m.correo} · ${telBonito(m.telefono)}</p></div></div>
-      <${DS.Badge} tone=${tono}>${{ pendiente: 'Por verificar', aprobado: 'Aprobado', suspendido: 'Suspendido' }[m.estado]}<//>
+      <${DS.Badge} tone=${tono}>${{ pendiente: 'Por verificar', aprobado: 'Aprobado', suspendido: m.suspendido_por_cancelaciones ? 'Suspendido por cancelaciones' : 'Suspendido' }[m.estado]}<//>
     </div>
     <dl class="datos">
       <dt>Foto</dt><dd>${m.foto ? html`Revisa que sea una foto real de su cara. <button type="button" class="linkish" disabled=${st.ocupado} onClick=${() => hacer('quitar_foto', 'Foto quitada. Le avisamos para que suba otra.')}>Quitar foto</button>` : 'Sin foto'}</dd>
       <dt>Presentación</dt><dd>${m.presentacion || 'Sin presentación'}</dd>
       <dt>Cédula</dt><dd>${m.cedula || 'Sin capturar'}${m.cedula_verificada_at ? ` · verificada el ${fechaDia(diaISO(m.cedula_verificada_at))}` : ''}</dd>
       <dt>Identidad</dt><dd>${m.identidad_verificada_at ? `Confirmada en videollamada el ${fechaDia(diaISO(m.identidad_verificada_at))}` : 'Sin confirmar'}</dd>
+      ${m.estado !== 'pendiente' && html`<dt>Advertencias</dt><dd>${m.advertencias || 0} de 3 por cancelación (últimos 90 días)${m.suspendido_por_cancelaciones ? '. Al reactivar, vuelven a cero.' : ''}</dd>`}
       <dt>Zonas</dt><dd>${m.zonas.join(', ') || 'Sin zonas'}</dd>
       <dt>Agenda</dt><dd>${m.bloques} bloques a la semana${m.recibe_solicitudes ? '' : ' · en pausa'}</dd>
       <dt>Precios</dt><dd>${[['Consulta', m.precio_consulta], ['Vacunación', m.precio_vacunacion], ['Desparasitación', m.precio_desparasitacion]].filter((x) => x[1]).map((x) => `${x[0]} ${money(x[1])}`).join(' · ') || 'Sin precios'}</dd>

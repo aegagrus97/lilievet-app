@@ -1,5 +1,5 @@
 // Solicitudes del médico veterinario: aceptar o rechazar, consultas confirmadas con contacto, cancelar y reagendar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora, mascotaTxt, MOTIVOS_MVZ } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora, mascotaTxt, MOTIVOS_MVZ, SIN_ADVERTENCIA } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
 import { Caja, useAccion, FormReporte, ElegirMotivo } from '../cuenta.js';
@@ -91,7 +91,7 @@ function Oferta({ s, precio, recargar }) {
   </article>`;
 }
 
-function Consulta({ s, recargar }) {
+function Consulta({ s, recargar, advertencias = 0, onPerfil }) {
   const toast = useToast();
   const [modo, setModo] = useState(null);
   const [motivo, setMotivo] = useState('');
@@ -99,7 +99,7 @@ function Consulta({ s, recargar }) {
   const c = s.contacto;
   const empezo = Date.now() >= new Date(s.inicia_at).getTime();
   const puedeCambiar = ['por_pagar', 'confirmada'].includes(s.estado) && s.reagendas < 1 && !s.reagenda_propuesta_at && !empezo;
-  const cancelar = async () => { if (await correr(() => api.cancelarComoMvz(s.id, motivo))) { toast('Consulta cancelada. Avisamos al tutor.'); recargar(); } };
+  const cancelar = async () => { if (await correr(() => api.cancelarComoMvz(s.id, motivo))) { toast('Consulta cancelada. Avisamos al tutor.'); recargar(); onPerfil && onPerfil().catch(() => {}); } };
   const responder = async (acepta) => { if (await correr(() => api.responderReagenda(s.id, acepta))) { toast(acepta ? 'Nuevo horario confirmado. Avisamos al tutor.' : 'Se conserva el horario actual. Avisamos al tutor.'); recargar(); } };
   const badge = { por_pagar: ['pendiente', 'Esperando pago del tutor'], confirmada: ['verificado', 'Confirmada'], realizada: ['completado', 'Realizada'] }[s.estado] || ['neutral', 'Cerrada'];
   return html`<article class="box stack">
@@ -134,6 +134,9 @@ function Consulta({ s, recargar }) {
         : 'Al tutor se le reembolsa la cuota de servicio completa.'}${puedeCambiar ? ' Si puedes atender otro día, mejor propón otro horario.' : ''}</p>
       <${ElegirMotivo} opciones=${s.estado === 'confirmada' ? MOTIVOS_MVZ : MOTIVOS_MVZ.slice(1)} onCambio=${setMotivo} />
       <p class="small muted">El tutor verá el motivo.</p>
+      ${motivo && !SIN_ADVERTENCIA.includes(motivo) && html`<${DS.Notice} tone="error">${advertencias + 1 >= 3
+        ? html`<b>Con esta cancelación tu cuenta se suspende.</b> Sería tu tercera advertencia en 90 días.`
+        : html`Esta cancelación cuenta como <b>advertencia ${advertencias + 1} de 3</b> (últimos 90 días). A la tercera tu cuenta se suspende.`}<//>`}
       <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || motivo.trim().length < 5} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => setModo(null)}>No<//></div>
     </div>`}
     ${modo === 'reporte' && html`<div class="sub-box"><${FormReporte} solicitudId=${s.id} tipos=${['tutor_ausente', 'otro']} onListo=${recargar} /></div>`}
@@ -154,7 +157,9 @@ export function SolicitudesMvz({ perfil, onPerfil, onConteos }) {
   const cambios = (datos || []).filter((s) => s.reagenda_propuesta_at && s.reagenda_por === 'tutor').length;
   useEffect(() => { onConteos && onConteos({ porResponder: ofertas.length + cambios }); }, [ofertas.length, cambios]);
 
-  if (perfil.mvz.estado !== 'aprobado') return html`<${Alta} perfil=${perfil} />`;
+  // Suspendido: ya no recibe solicitudes nuevas, pero sigue viendo y atendiendo sus consultas confirmadas
+  const suspendido = perfil.mvz.estado === 'suspendido';
+  if (perfil.mvz.estado !== 'aprobado' && !suspendido) return html`<${Alta} perfil=${perfil} />`;
   if (error) return html`<div class="page page-narrow"><${ErrorCarga} error=${error} onReintentar=${recargar} /></div>`;
   if (!datos) return html`<${Cargando} />`;
   const m = perfil.mvz;
@@ -164,14 +169,18 @@ export function SolicitudesMvz({ perfil, onPerfil, onConteos }) {
   const falta = pendientesAlta(perfil).filter((x) => !x[1]);
   return html`<div class="page page-narrow">
     <${PageHead} titulo="Solicitudes" sub="Tienes una hora para aceptar o rechazar cada solicitud." />
-    ${!m.recibe_solicitudes && html`<${DS.Notice}>Pausaste tu cuenta: no estás recibiendo solicitudes. <a href="#/servicios">Reactivar</a><//>`}
-    ${falta.length > 0 && html`<${DS.Notice}>No apareces ante los tutores porque falta: ${falta.map((x) => x[0].toLowerCase()).join(', ')}.<//>`}
+    ${suspendido && html`<${DS.Notice} tone="error" title="Tu cuenta está suspendida.">${m.suspendido_por_cancelaciones
+      ? 'Llegaste a 3 cancelaciones en 90 días. Ya no recibes solicitudes nuevas; tus consultas confirmadas siguen en pie. Escríbenos para revisar tu cuenta.'
+      : 'Por ahora no recibes solicitudes nuevas; tus consultas confirmadas siguen en pie. Escríbenos para revisar tu cuenta.'}<//>`}
+    ${!suspendido && m.advertencias > 0 && html`<${DS.Notice} tone="error">Llevas <b>${m.advertencias} de 3 advertencias</b> por cancelación en los últimos 90 días. A la tercera tu cuenta se suspende. Si no puedes atender, mejor propón otro horario.<//>`}
+    ${!suspendido && !m.recibe_solicitudes && html`<${DS.Notice}>Pausaste tu cuenta: no estás recibiendo solicitudes. <a href="#/servicios">Reactivar</a><//>`}
+    ${!suspendido && falta.length > 0 && html`<${DS.Notice}>No apareces ante los tutores porque falta: ${falta.map((x) => x[0].toLowerCase()).join(', ')}.<//>`}
     <h2 class="section-title">Por responder</h2>
     ${!ofertas.length && html`<section class="box vacio"><${Icon} name="inbox" /><div><b>Sin solicitudes por responder</b><p class="small muted">Te avisamos por correo cuando llegue una.</p></div></section>`}
     ${ofertas.map((s) => html`<${Oferta} key=${s.id} s=${s} precio=${precio(s)} recargar=${recargar} />`)}
     <h2 class="section-title">Próximas consultas</h2>
     ${!proximas.length && html`<section class="box vacio"><${Icon} name="cal" /><div><b>Sin consultas próximas</b><p class="small muted">Aquí aparecen las que aceptes.</p></div></section>`}
-    ${proximas.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} />`)}
+    ${proximas.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} advertencias=${m.advertencias || 0} onPerfil=${onPerfil} />`)}
     ${pasadas.length > 0 && html`<h2 class="section-title">Anteriores</h2>`}
     ${pasadas.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} />`)}
     <p class="small muted">LilieVET no te cobra nada, no te paga nada y no toca el dinero de la consulta: el tutor te paga directo por los medios que aceptes.</p>

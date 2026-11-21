@@ -38,6 +38,7 @@ begin
     perform privado.avisar(s.mvz_id, 'cierre', 'Actualizamos una consulta', 'LilieVET cerró la consulta del ' || privado.cuando(s.inicia_at) || '.', s.id);
   end if;
   perform privado.auditar('cerrar_solicitud', 'solicitud', s.id::text, jsonb_build_object('estado', p_estado, 'motivo', v_motivo));
+  if p_estado = 'mvz_no_asistio' and s.mvz_id is not null then perform privado.registrar_advertencia_mvz(s.mvz_id, s.id); end if;
 end $function$
 ;
 
@@ -94,7 +95,9 @@ begin
     update app.mvz set estado = 'suspendido' where id = m.id;
   elsif p_accion = 'reactivar' then
     if m.cedula_verificada_at is null then perform privado.error('Primero hay que aprobar la cuenta.'); end if;
-    update app.mvz set estado = 'aprobado' where id = m.id;
+    -- Al reactivar, las advertencias vuelven a cero (solo cuentan las cancelaciones posteriores)
+    update app.mvz set estado = 'aprobado', advertencias_desde = now(), suspendido_por_cancelaciones_at = null where id = m.id;
+    perform privado.avisar(m.id, 'alta', 'Reactivamos tu cuenta', 'Ya puedes recibir solicitudes otra vez. Tus advertencias por cancelación empiezan de cero.');
   elsif p_accion = 'quitar_foto' then
     if m.foto is null then perform privado.error('Ese médico no tiene foto.'); end if;
     update app.mvz set foto = null where id = m.id;
@@ -202,6 +205,7 @@ AS $function$ declare v jsonb; begin
     'medios_pago', m.medios_pago, 'comparte_telefono', m.comparte_telefono_at is not null, 'recibe_solicitudes', m.recibe_solicitudes,
     'zonas', coalesce((select jsonb_agg(alcaldia order by alcaldia) from app.mvz_zonas where mvz_id = m.id), '[]'::jsonb),
     'bloques', (select count(*) from app.mvz_horario where mvz_id = m.id),
+    'advertencias', privado.advertencias_mvz(m.id), 'suspendido_por_cancelaciones', m.suspendido_por_cancelaciones_at is not null,
     'created_at', p.created_at) order by (m.estado = 'pendiente') desc, p.created_at desc), '[]'::jsonb) into v
   from app.mvz m join app.perfiles p on p.id = m.id;
   return v;
@@ -273,6 +277,7 @@ begin
     if not found then perform privado.error('Este reporte no tiene una consulta asociada.'); end if;
     if r.tipo = 'inasistencia_mvz' and s.estado in ('confirmada', 'realizada') then
       update app.solicitudes set estado = 'mvz_no_asistio', cerrada_at = now(), motivo_cierre = 'Reporte de inasistencia procedente', reagenda_propuesta_at = null where id = s.id;
+      if s.mvz_id is not null then perform privado.registrar_advertencia_mvz(s.mvz_id, s.id); end if;
     end if;
     if not privado.pedir_reembolso(s.id, 'Reporte procedente') then
       perform privado.error('Esa consulta no tiene un pago aprobado por reembolsar (o ya se reembolsó).');
