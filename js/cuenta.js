@@ -114,7 +114,7 @@ export function FormReporte({ solicitudId = null, tipos, onListo, titulo = 'Envi
     <strong class="section-title">${titulo}</strong>
     ${tipos.length > 1 && html`<${DS.Field} as="select" label="¿De qué se trata?" value=${tipo} onChange=${(e) => setTipo(e.target.value)} options=${tipos.map((t) => ({ value: t, label: REPORTE[t] }))} />`}
     <${DS.Field} as="textarea" label="Cuéntanos qué pasó" maxLength=${1000} value=${detalle} onChange=${(e) => setDetalle(e.target.value)}
-      hint=${tipo === 'datos_personales' ? 'Dinos qué necesitas: conocer tus datos, corregirlos o eliminarlos. No escribas datos de salud ni contraseñas.' : 'Entre 10 y 1,000 caracteres. No escribas contraseñas ni datos de tarjetas.'} />
+      hint=${tipo === 'datos_personales' ? 'Dinos qué necesitas: conocer tus datos, corregirlos o eliminarlos (al menos 10 caracteres). No escribas datos de salud ni contraseñas.' : 'Entre 10 y 1,000 caracteres. No escribas contraseñas ni datos de tarjetas.'} />
     ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
     <div><${DS.Button} type="submit" variant="secondary" disabled=${st.ocupado || detalle.trim().length < 10}>${st.ocupado ? 'Enviando…' : 'Enviar reporte'}<//></div>
   </form>`;

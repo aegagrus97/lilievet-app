@@ -130,7 +130,8 @@ function VersionReporte({ r, recargar }) {
     ${r.version_medico
       ? html`<p class="small"><b>Tu versión</b> (enviada el ${fechaHora(r.version_medico_at)}): ${r.version_medico}</p><p class="small muted">La revisamos antes de decidir.</p>`
       : html`<p class="small">Cuéntanos qué pasó antes del ${fechaHora(new Date(new Date(r.created_at).getTime() + 48 * H))}. Lo revisamos antes de decidir.</p>
-        <${DS.Field} as="textarea" label="Tu versión" maxLength=${1000} value=${texto} onChange=${(e) => setTexto(e.target.value)} />
+        <${DS.Field} as="textarea" label="Tu versión" maxLength=${1000} value=${texto} onChange=${(e) => setTexto(e.target.value)}
+          hint=${texto.trim().length < 10 ? `Escribe al menos 10 caracteres para poder enviarla (llevas ${texto.trim().length}).` : 'Máximo 1,000 caracteres.'} />
         ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
         <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || texto.trim().length < 10} onClick=${enviar}>Enviar mi versión<//></div>`}
   </div>`;
