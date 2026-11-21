@@ -86,6 +86,7 @@ begin
   select * into s from app.solicitudes where id = p_solicitud and mvz_id = y.id for update;
   if not found or s.estado not in ('por_pagar', 'confirmada') then perform privado.error('Esta consulta ya no se puede cancelar.'); end if;
   if s.llegada_at is not null then perform privado.error('Ya registraste tu llegada, así que la consulta ya no se puede cancelar. Si hubo un problema, envía un reporte.'); end if;
+  if now() >= s.inicia_at then perform privado.error('El horario de la consulta ya empezó, así que ya no se puede cancelar. Si hubo un problema, envía un reporte.'); end if;
   update app.solicitudes set estado = 'cancelada_mvz', cerrada_at = now(), motivo_cierre = v_motivo, reagenda_propuesta_at = null where id = s.id;
   perform privado.pedir_reembolso(s.id, 'El médico veterinario canceló');
   perform privado.avisar(s.tutor_id, 'cancelada', 'Tu consulta fue cancelada',
