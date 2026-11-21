@@ -118,6 +118,22 @@ Hoy la app ya acepta domicilios en 18 municipios de la zona conurbada (el tutor 
 - Si conviene validar el municipio con más precisión que solo el rango de C.P.
 - Si hay médicos que marquen esas zonas; sin ellos, las solicitudes de allá quedan sin médico.
 
+### Pendiente: reembolsos por domicilio que no corresponde (20 nov 2026)
+
+En la fase piloto, si el médico cancela porque el domicilio no corresponde a la zona, al tutor se le reembolsa la cuota completa (como en cualquier cancelación del médico). Cuando haya datos, medir qué porcentaje de los reembolsos se debe a esto y decidir si se mantiene el reembolso en ese caso.
+
+Las cancelaciones por esta razón se reconocen porque el médico usa el motivo rápido, que guarda siempre el mismo texto en `motivo_cierre`. Consulta para el SQL Editor de Supabase:
+
+```sql
+select count(*) filter (where motivo_cierre like 'El domicilio no corresponde%') as por_domicilio,
+       count(*) as canceladas_por_medico,
+       round(100.0 * count(*) filter (where motivo_cierre like 'El domicilio no corresponde%') / nullif(count(*), 0), 1) as porcentaje
+from app.solicitudes
+where estado = 'cancelada_mvz';
+```
+
+Ojo: si el médico escribe el motivo a mano en vez de usar el botón, no entra en la cuenta.
+
 ## Ver el diseño sin conectar nada
 
 `?demo=tutor`, `?demo=mvz`, `?demo=mvz-nuevo` o `?demo=admin` abren la app con datos de ejemplo que viven solo en la memoria del navegador.
