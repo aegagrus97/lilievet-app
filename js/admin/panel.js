@@ -202,13 +202,14 @@ function Reporte({ r, recargar }) {
     ${r.solicitud_id && r.autor_rol === 'tutor' && ['inasistencia_mvz', 'reembolso'].includes(r.tipo) && html`<p class="small">${r.llegada_at
       ? html`<b>Llegada del médico:</b> registrada con el código del tutor el ${fechaHora(r.llegada_at)}. Hay prueba de que acudió.`
       : html`<b>Llegada del médico:</b> sin registro con código de visita.`}</p>`}
-    ${r.version_medico && html`<p class="small"><b>Versión del médico${r.version_medico_at ? ` (desde la app, ${fechaHora(r.version_medico_at)})` : ''}:</b> ${r.version_medico}</p>`}
+    ${r.version_medico && html`<p class="small"><b>Versión del ${r.autor_rol === 'mvz' ? 'tutor' : 'médico'}${r.version_medico_at ? ` (desde la app, ${fechaHora(r.version_medico_at)})` : ''}:</b> ${r.version_medico}</p>`}
     ${abierto && r.autor_rol === 'tutor' && ['inasistencia_mvz', 'reembolso'].includes(r.tipo) && !r.version_medico && html`<p class="small muted">Le pedimos su versión al médico; tiene hasta el ${fechaHora(new Date(new Date(r.created_at).getTime() + 48 * 3600e3))} para responder desde la app.</p>`}
     ${!abierto && html`<p class="small"><b>Respuesta:</b> ${r.resolucion}</p>`}
     ${abierto && html`<div class="stack">
       ${r.tipo === 'inasistencia_mvz' && html`<${DS.Notice} tone="info">${r.llegada_at ? 'El médico registró su llegada con el código del tutor: revisa bien antes de reembolsar.' : 'Si no hay prueba de que el médico acudió, procede el reembolso.'}<//>`}
-      ${!r.version_medico && html`<${DS.Field} as="textarea" label="Versión del médico veterinario (si te la dio por otro medio, opcional)" maxLength=${1000} value=${version} onChange=${(e) => setVersion(e.target.value)} />`}
-      <${DS.Field} as="textarea" label="Respuesta para quien reportó" maxLength=${1000} value=${resp} onChange=${(e) => setResp(e.target.value)} />
+      ${!r.version_medico && r.solicitud_id && html`<${DS.Field} as="textarea" label=${r.autor_rol === 'mvz' ? 'Versión del tutor (si te la dio por otro medio, opcional)' : 'Versión del médico veterinario (si te la dio por otro medio, opcional)'} maxLength=${1000} value=${version} onChange=${(e) => setVersion(e.target.value)} />`}
+      <${DS.Field} as="textarea" label="Respuesta para quien reportó" maxLength=${1000} value=${resp} onChange=${(e) => setResp(e.target.value)}
+        hint=${resp.trim().length < 5 ? `Escribe al menos 5 caracteres para poder resolver el reporte (llevas ${resp.trim().length}).` : 'Quien reportó la verá en la app; le avisamos que ya respondiste.'} />
       ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
       <div class="row">
         ${r.solicitud_id && r.autor_rol === 'tutor' && html`<${DS.Button} size="sm" disabled=${st.ocupado || resp.trim().length < 5} onClick=${() => resolver('reembolsar')}>Reembolsar la cuota<//>`}
