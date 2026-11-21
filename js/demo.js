@@ -133,6 +133,7 @@ export function demoApi(quien) {
     cancelarComoMvz: async (id) => { solsM = solsM.filter((x) => x.id !== id); },
     proponerReagenda: async (id, inicia) => { solsM.find((x) => x.id === id).reagenda_propuesta_at = inicia; },
     registrarLlegada: async (id, codigo) => { if (codigo !== '4827') return { ok: false }; Object.assign(solsM.find((x) => x.id === id), { llegada_at: en(0), puede_registrar_llegada: false }); return { ok: true }; },
+    responderReporteTutor: async (id, version) => { sols.forEach((x) => (x.reportes_mvz || []).forEach((r) => { if (r.id === id) Object.assign(r, { version, version_at: en(0) }); })); },
     responderReporteMvz: async (id, version) => { solsM.forEach((x) => (x.reportes_tutor || []).forEach((r) => { if (r.id === id) Object.assign(r, { version_medico: version, version_medico_at: en(0) }); })); },
 
     mfaEstado: async () => ({ nivel: 'aal2', factor: { id: 'f1' } }),

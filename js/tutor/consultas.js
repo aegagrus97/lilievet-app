@@ -6,6 +6,28 @@ import { useAccion, FormReporte, ElegirMotivo } from '../cuenta.js';
 
 const H = 36e5;
 
+// El médico reportó un problema con esta consulta: el tutor puede dar su versión en 48 horas
+function VersionTutor({ r, recargar }) {
+  const toast = useToast();
+  const [texto, setTexto] = useState('');
+  const [st, correr] = useAccion();
+  const limite = new Date(new Date(r.created_at).getTime() + 48 * H);
+  const enviar = async () => { if (await correr(() => api.responderReporteTutor(r.id, texto))) { toast('Enviamos tu versión. La revisamos antes de decidir.'); recargar(); } };
+  const titulo = r.tipo === 'tutor_ausente' ? 'El médico veterinario reportó que no estabas o no permitiste el acceso.' : 'El médico veterinario reportó un problema con esta consulta.';
+  return html`<div class="sub-box stack-sm">
+    <p class="small"><b>${titulo}</b> "${r.detalle}"</p>
+    ${r.version
+      ? html`<p class="small"><b>Tu versión</b> (enviada el ${fechaHora(r.version_at)}): ${r.version}</p><p class="small muted">La revisamos antes de decidir.</p>`
+      : Date.now() > limite.getTime()
+        ? html`<p class="small muted">Ya pasó el plazo de 48 horas para enviar tu versión. Lo revisamos con la información que tenemos.</p>`
+        : html`<p class="small">Cuéntanos qué pasó antes del ${fechaHora(limite)}. Lo revisamos antes de decidir.</p>
+          <${DS.Field} as="textarea" label="Tu versión" maxLength=${1000} value=${texto} onChange=${(e) => setTexto(e.target.value)}
+            hint=${texto.trim().length < 10 ? `Escribe al menos 10 caracteres para poder enviarla (llevas ${texto.trim().length}).` : 'Máximo 1,000 caracteres.'} />
+          ${st.error && html`<${DS.Notice} tone="error">${st.error}<//>`}
+          <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || texto.trim().length < 10} onClick=${enviar}>Enviar mi versión<//></div>`}
+  </div>`;
+}
+
 function Encuesta({ s, onListo }) {
   const [r, setR] = useState({ se_presento: 'true', puntualidad: '', trato: '', recomendaria: '', comentario: '' });
   const [st, correr] = useAccion();
@@ -140,6 +162,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
 
     ${s.encuesta_pendiente && html`<${Encuesta} s=${s} onListo=${() => { toast('Gracias por tu respuesta.', { sparks: true }); recargar(); }} />`}
 
+    ${(s.reportes_mvz || []).filter((r) => r.estado === 'abierto').map((r) => html`<${VersionTutor} key=${r.id} r=${r} recargar=${recargar} />`)}
     ${s.reportes.map((r, i) => html`<${DS.Notice} key=${i} tone=${r.estado === 'abierto' ? 'info' : 'exito'} title=${REPORTE[r.tipo] + '.'}>
       ${r.estado === 'abierto' ? 'Lo estamos revisando.' : r.resolucion || 'Resuelto.'}<//>`)}
 

@@ -203,6 +203,7 @@ function Reporte({ r, recargar }) {
       ? html`<b>Llegada del médico:</b> registrada con el código del tutor el ${fechaHora(r.llegada_at)}. Hay prueba de que acudió.`
       : html`<b>Llegada del médico:</b> sin registro con código de visita.`}</p>`}
     ${r.version_medico && html`<p class="small"><b>Versión del ${r.autor_rol === 'mvz' ? 'tutor' : 'médico'}${r.version_medico_at ? ` (desde la app, ${fechaHora(r.version_medico_at)})` : ''}:</b> ${r.version_medico}</p>`}
+    ${abierto && r.solicitud_id && r.autor_rol === 'mvz' && ['tutor_ausente', 'otro'].includes(r.tipo) && !r.version_medico && html`<p class="small muted">Le pedimos su versión al tutor; tiene hasta el ${fechaHora(new Date(new Date(r.created_at).getTime() + 48 * 3600e3))} para responder desde la app.</p>`}
     ${abierto && r.autor_rol === 'tutor' && ['inasistencia_mvz', 'reembolso'].includes(r.tipo) && !r.version_medico && html`<p class="small muted">Le pedimos su versión al médico; tiene hasta el ${fechaHora(new Date(new Date(r.created_at).getTime() + 48 * 3600e3))} para responder desde la app.</p>`}
     ${!abierto && html`<p class="small"><b>Respuesta:</b> ${r.resolucion}</p>`}
     ${abierto && html`<div class="stack">

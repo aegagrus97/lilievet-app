@@ -177,10 +177,14 @@ begin
     perform privado.error('Ya tenemos un reporte abierto de este tipo para esa consulta. Lo estamos revisando.');
   end;
   perform privado.avisar_admins('reporte', 'Reporte nuevo', 'Hay un reporte nuevo por revisar en el Panel.', p_solicitud);
-  -- Se pide la versión del médico antes de decidir
+  -- Se pide la versión de la otra parte antes de decidir (48 horas).
+  -- Las columnas version_medico / version_medico_at guardan la versión de la otra parte: del médico si reportó el tutor, del tutor si reportó el médico.
   if p.rol = 'tutor' and p_tipo in ('inasistencia_mvz', 'reembolso') and s.mvz_id is not null then
     perform privado.avisar(s.mvz_id, 'reporte_mvz', 'El tutor reportó un problema con una consulta',
       'Cuéntanos tu versión en las próximas 48 horas desde Solicitudes, en la consulta del ' || privado.cuando(s.inicia_at) || '. La revisamos antes de decidir.', s.id);
+  elsif p.rol = 'mvz' and p_solicitud is not null and p_tipo in ('tutor_ausente', 'otro') then
+    perform privado.avisar(s.tutor_id, 'reporte_tutor', 'El médico veterinario reportó un problema con una consulta',
+      'Cuéntanos tu versión en las próximas 48 horas desde Mis consultas, en la consulta del ' || privado.cuando(s.inicia_at) || '. La revisamos antes de decidir.', s.id);
   end if;
 end $function$
 ;
@@ -446,11 +450,34 @@ AS $function$
 declare y app.perfiles := privado.yo('mvz'); r app.reportes; v text := privado.txt(p_version, 10, 1000, 'Tu versión (al menos 10 caracteres)');
 begin
   select r2.* into r from app.reportes r2 join app.solicitudes s on s.id = r2.solicitud_id
-    where r2.id = p_reporte and s.mvz_id = y.id and r2.tipo in ('inasistencia_mvz', 'reembolso') for update of r2;
+    where r2.id = p_reporte and s.mvz_id = y.id and r2.autor_id = s.tutor_id and r2.tipo in ('inasistencia_mvz', 'reembolso') for update of r2;
   if not found then perform privado.error('No encontramos ese reporte.'); end if;
   if r.estado <> 'abierto' then perform privado.error('Este reporte ya se resolvió.'); end if;
+  if r.version_medico is not null then perform privado.error('Ya enviaste tu versión.'); end if;
+  if now() > r.created_at + interval '48 hours' then perform privado.error('Ya pasaron las 48 horas para enviar tu versión.'); end if;
   update app.reportes set version_medico = v, version_medico_at = now() where id = r.id;
   perform privado.avisar_admins('reporte', 'El médico respondió un reporte', 'Ya está la versión del médico en el Panel, en Reportes.', r.solicitud_id);
   perform privado.auditar('version_medico', 'reporte', r.id::text);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.responder_reporte_tutor(p_reporte uuid, p_version text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare t app.perfiles := privado.yo('tutor'); r app.reportes; v text := privado.txt(p_version, 10, 1000, 'Tu versión (al menos 10 caracteres)');
+begin
+  -- Se guarda en version_medico / version_medico_at: ahí va la versión de la otra parte
+  select r2.* into r from app.reportes r2 join app.solicitudes s on s.id = r2.solicitud_id
+    where r2.id = p_reporte and s.tutor_id = t.id and r2.autor_id = s.mvz_id and r2.tipo in ('tutor_ausente', 'otro') for update of r2;
+  if not found then perform privado.error('No encontramos ese reporte.'); end if;
+  if r.estado <> 'abierto' then perform privado.error('Este reporte ya se resolvió.'); end if;
+  if r.version_medico is not null then perform privado.error('Ya enviaste tu versión.'); end if;
+  if now() > r.created_at + interval '48 hours' then perform privado.error('Ya pasaron las 48 horas para enviar tu versión.'); end if;
+  update app.reportes set version_medico = v, version_medico_at = now() where id = r.id;
+  perform privado.avisar_admins('reporte', 'El tutor respondió un reporte', 'Ya está la versión del tutor en el Panel, en Reportes.', r.solicitud_id);
+  perform privado.auditar('version_tutor', 'reporte', r.id::text);
 end $function$
 ;
