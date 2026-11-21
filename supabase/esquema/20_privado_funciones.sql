@@ -57,6 +57,16 @@ AS $function$ select array['Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez',
   'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'] $function$
 ;
 
+-- Alcaldía según el código postal (CDMX: los dos primeros dígitos)
+CREATE OR REPLACE FUNCTION privado.alcaldia_de_cp(p_cp text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$ select case when p_cp ~ '^(0[1-9]|1[0-6])[0-9]{3}$' then (privado.alcaldias())[substr(p_cp, 1, 2)::integer] end $function$
+;
+
+
 CREATE OR REPLACE FUNCTION privado.auditar(p_accion text, p_objeto text, p_id text, p_detalle jsonb DEFAULT NULL::jsonb)
  RETURNS void
  LANGUAGE sql

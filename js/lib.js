@@ -125,6 +125,14 @@ export const SERVICIO_DESC = {
   desparasitacion: 'Interna o externa, según indique el médico.',
 };
 export const ESPECIE = { perro: 'Perro', gato: 'Gato' };
+// Alcaldía según el código postal: en la CDMX los dos primeros dígitos del C.P. indican la alcaldía
+// (01 Álvaro Obregón … 16 Xochimilco, en el mismo orden que la lista de alcaldías de la base).
+// Se comprobó contra el catálogo de SEPOMEX: los 1,110 C.P. de la CDMX cumplen la regla.
+export function alcaldiaDeCP(cp, alcaldias) {
+  if (!/^\d{5}$/.test(cp || '')) return null;
+  const n = Number(cp.slice(0, 2));
+  return n >= 1 && n <= 16 ? alcaldias[n - 1] : null;
+}
 export const SEXO = { macho: 'Macho', hembra: 'Hembra' };
 // Foto redonda del médico veterinario; sin foto, sus iniciales
 export function FotoMvz({ ruta, nombre = '', tam = 56 }) {

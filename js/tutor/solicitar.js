@@ -1,5 +1,5 @@
 // Solicitar una consulta: servicio → domicilio → horario → médicos (1ª, 2ª y 3ª opción) → confirmar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda, FotoMvz } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda, FotoMvz, alcaldiaDeCP } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, ir, useToast } from '../shell.js';
 import { useAccion } from '../cuenta.js';
@@ -64,7 +64,8 @@ export function Solicitar({ perfil }) {
   const P = perfil.parametros;
   const [inicial] = useState(() => desdeBorrador(perfil.id));
   const [paso, setPaso] = useState(inicial[1]);
-  const [d, setD] = useState(inicial[0]);
+  // La alcaldía siempre sale del código postal (también en borradores y en "Buscar de nuevo")
+  const [d, setD] = useState(() => ({ ...inicial[0], alcaldia: alcaldiaDeCP(inicial[0].cp, P.alcaldias) || '' }));
   const [recuperado, setRecuperado] = useState(inicial[2]);
   // Se guarda el borrador conforme avanza (y el paso donde va)
   useEffect(() => { guardarBorrador(perfil.id, d, paso); }, [d, paso]);
@@ -120,10 +121,11 @@ export function Solicitar({ perfil }) {
     edadMeses !== null && edadMeses > 360 && 'una edad de hasta 30 años',
     largoMotivo < motivoMin && (largoMotivo ? `contar un poco más de qué le pasa (mínimo ${motivoMin} caracteres; llevas ${largoMotivo})` : `contar qué le pasa a tu mascota (mínimo ${motivoMin} caracteres)`),
   ].filter(Boolean);
+  const cpFuera = /^\d{5}$/.test(d.cp) && !alcaldiaDeCP(d.cp, P.alcaldias);
   const faltan2 = [
-    !d.alcaldia && 'tu alcaldía',
-    d.colonia.trim().length < 2 && 'la colonia',
     !/^\d{5}$/.test(d.cp) && 'el código postal de 5 dígitos',
+    cpFuera && 'un código postal de la Ciudad de México',
+    d.colonia.trim().length < 2 && 'la colonia',
     d.calle_numero.trim().length < 3 && 'la calle y el número',
   ].filter(Boolean);
   const ok1 = !faltan1.length;
@@ -175,12 +177,15 @@ export function Solicitar({ perfil }) {
 
     ${paso === 2 && html`<section class="box stack">
       <${DS.Notice} tone="info">Tu domicilio completo solo se comparte con el médico veterinario cuando la consulta queda confirmada. Antes solo ve la colonia y la alcaldía.<//>
-      <${DS.Field} as="select" label="Alcaldía" value=${d.alcaldia} onChange=${(e) => setD({ ...d, alcaldia: e.target.value, inicia_at: null, medicos: [] })}
-        options=${[{ value: '', label: 'Elige tu alcaldía' }, ...P.alcaldias.map((a) => ({ value: a, label: a }))]} />
       <div class="field-row">
-        <${DS.Field} label="Colonia" maxLength=${80} autoComplete="address-level3" value=${d.colonia} onChange=${set('colonia')} />
-        <${DS.Field} label="Código postal" inputMode="numeric" maxLength=${5} autoComplete="postal-code" value=${d.cp} onChange=${(e) => setD({ ...d, cp: e.target.value.replace(/\D/g, '') })} />
+        <${DS.Field} label="Código postal" inputMode="numeric" maxLength=${5} autoComplete="postal-code" value=${d.cp}
+          onChange=${(e) => { const cp = e.target.value.replace(/\D/g, '').slice(0, 5); const a = alcaldiaDeCP(cp, P.alcaldias) || ''; setD({ ...d, cp, alcaldia: a, ...(a !== d.alcaldia ? { inicia_at: null, medicos: [] } : {}) }); }}
+          hint=${cpFuera ? '' : 'Con tu código postal sabemos tu alcaldía.'} />
+        <div class="stack-sm"><span class="small"><b>Alcaldía</b></span>
+          <p class="cp-alcaldia">${d.alcaldia || html`<span class="muted">Escribe tu código postal</span>`}</p></div>
       </div>
+      ${cpFuera && html`<${DS.Notice} tone="error">Ese código postal no es de la Ciudad de México. Por ahora LilieVET solo atiende en la CDMX; revisa que esté bien escrito.<//>`}
+      <${DS.Field} label="Colonia" maxLength=${80} autoComplete="address-level3" value=${d.colonia} onChange=${set('colonia')} />
       <${DS.Field} label="Calle y número" maxLength=${120} autoComplete="address-line1" value=${d.calle_numero} onChange=${set('calle_numero')} />
       <${DS.Field} label="Referencias (opcional)" maxLength=${200} value=${d.referencias} onChange=${set('referencias')} hint="Color de la fachada, entre qué calles, número interior." />
       <div class="row"><${DS.Button} variant="secondary" onClick=${() => setPaso(1)}>Atrás<//><${DS.Button} disabled=${!ok2} onClick=${() => setPaso(3)}>Continuar<//></div>
@@ -191,7 +196,7 @@ export function Solicitar({ perfil }) {
       ${carga && html`<${DS.Notice} tone="error">${carga}<//>`}
       ${!bloques && !carga && html`<p class="muted">Buscando horarios…</p>`}
       ${bloques && !bloques.length && html`<${DS.EmptyState} who="liebe" title="Aún no hay médicos en tu zona">
-        Por ahora ningún médico veterinario atiende ${d.alcaldia} para este servicio. Ya anotamos tu búsqueda para sumar médicos en tu zona; vuelve a intentar pronto o prueba otra alcaldía cercana.<//>`}
+        Por ahora ningún médico veterinario atiende ${d.alcaldia} para este servicio. Ya anotamos tu búsqueda para sumar médicos en tu zona; vuelve a intentar pronto.<//>`}
       ${bloques && bloques.length > 0 && html`
         <div class="row" role="radiogroup" aria-label="Día">
           ${dias.map((x) => html`<${DS.Chip} key=${x} type="radio" name="dia" checked=${dia === x} onChange=${() => setDia(x)}>${fechaDia(x).replace(/ de \d{4}| \d{4}/, '')}<//>`)}

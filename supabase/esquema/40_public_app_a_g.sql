@@ -175,6 +175,10 @@ begin
   if v_alcaldia is null or not (v_alcaldia = any (privado.alcaldias())) then perform privado.error('Elige una alcaldía de la lista.'); end if;
   if coalesce(p ->> 'especie', '') not in ('perro', 'gato') then perform privado.error('Elige perro o gato.'); end if;
   if coalesce(p ->> 'cp', '') !~ '^[0-9]{5}$' then perform privado.error('Escribe un código postal de 5 dígitos.'); end if;
+  -- En la CDMX los dos primeros dígitos del C.P. indican la alcaldía (01 Álvaro Obregón … 16 Xochimilco)
+  if privado.alcaldia_de_cp(p ->> 'cp') is distinct from v_alcaldia then
+    perform privado.error('Tu código postal no corresponde a la alcaldía. Revisa tu domicilio.');
+  end if;
   if coalesce(p ->> 'sexo', '') not in ('macho', 'hembra') then perform privado.error('Elige si tu mascota es macho o hembra.'); end if;
   if coalesce(p ->> 'edad_meses', '') ~ '^[0-9]{1,3}$' then v_edad := (p ->> 'edad_meses')::integer; end if;
   if v_edad is null or v_edad > 360 then perform privado.error('Escribe la edad de tu mascota.'); end if;
