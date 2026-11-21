@@ -1,6 +1,6 @@
 // LilieVET · service worker: guarda los archivos de la app para que abra rápido.
 // Solo guarda archivos de esta misma carpeta. Los datos (Supabase) nunca se guardan aquí.
-const VERSION = 'lv-cuota-29';
+const VERSION = 'lv-cuota-30';
 const ARCHIVOS = [
   './', 'index.html', 'config.js', 'manifest.webmanifest',
   'ds/tokens.css', 'ds/bundle.css', 'fonts/inter-latin-400-normal.woff2', 'fonts/inter-latin-500-normal.woff2', 'fonts/inter-latin-600-normal.woff2', 'fonts/poppins-latin-600-normal.woff2', 'fonts/poppins-latin-700-normal.woff2', 'ds/bundle.js', 'css/app.css',

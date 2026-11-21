@@ -215,7 +215,11 @@ export function SolicitudesMvz({ perfil, onPerfil, onConteos }) {
   const m = perfil.mvz;
   const precio = (s) => ({ consulta: m.precio_consulta, vacunacion: m.precio_vacunacion, desparasitacion: m.precio_desparasitacion }[s.servicio]);
   const proximas = datos.filter((s) => ['por_pagar', 'confirmada'].includes(s.estado));
-  const pasadas = datos.filter((s) => !ofertas.includes(s) && !proximas.includes(s) && s.estado !== 'buscando').reverse().slice(0, 10);
+  // Consultas ya pasadas con un reporte del tutor que espera la versión del médico: van arriba para que no se pierdan
+  const reclamo = (s) => (s.reportes_tutor || []).some((r) => r.estado === 'abierto' && !r.version_medico);
+  const anteriores = datos.filter((s) => !ofertas.includes(s) && !proximas.includes(s) && s.estado !== 'buscando').reverse();
+  const conReporte = anteriores.filter(reclamo);
+  const pasadas = anteriores.filter((s) => !reclamo(s)).slice(0, 10);
   const falta = pendientesAlta(perfil).filter((x) => !x[1]);
   return html`<div class="page page-narrow">
     <${PageHead} titulo="Solicitudes" sub="Tienes una hora para aceptar o rechazar cada solicitud." />
@@ -228,6 +232,8 @@ export function SolicitudesMvz({ perfil, onPerfil, onConteos }) {
     <h2 class="section-title">Por responder</h2>
     ${!ofertas.length && html`<section class="box vacio"><${Icon} name="inbox" /><div><b>Sin solicitudes por responder</b><p class="small muted">Te avisamos por correo cuando llegue una.</p></div></section>`}
     ${ofertas.map((s) => html`<${Oferta} key=${s.id} s=${s} precio=${precio(s)} recargar=${recargar} />`)}
+    ${conReporte.length > 0 && html`<h2 class="section-title">Reportes del tutor por responder</h2>`}
+    ${conReporte.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} />`)}
     <h2 class="section-title">Próximas consultas</h2>
     ${!proximas.length && html`<section class="box vacio"><${Icon} name="cal" /><div><b>Sin consultas próximas</b><p class="small muted">Aquí aparecen las que aceptes.</p></div></section>`}
     ${proximas.map((s) => html`<${Consulta} key=${s.id} s=${s} recargar=${recargar} advertencias=${m.advertencias || 0} onPerfil=${onPerfil} />`)}
