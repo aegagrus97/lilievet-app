@@ -89,7 +89,7 @@ export function ElegirMotivo({ opciones, onCambio, otroObligatorio = true }) {
   const emitir = (e, t) => {
     if (e !== OTRO_MOTIVO) return onCambio(e);
     const limpio = t.trim();
-    onCambio(otroObligatorio ? (limpio.length >= 5 ? limpio : '') : (limpio ? OTRO_MOTIVO + ': ' + limpio : OTRO_MOTIVO + '.'));
+    onCambio(otroObligatorio ? (limpio.length >= 5 ? limpio : '') : (limpio ? OTRO_MOTIVO + ': ' + limpio : OTRO_MOTIVO));
   };
   const elegir = (v) => { setElegido(v); emitir(v, texto); };
   return html`<div class="stack-sm">

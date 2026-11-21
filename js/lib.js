@@ -192,17 +192,13 @@ export const leyenda = (m) => `Servicio prestado por ${m.nombre}, cédula ${m.ce
 
 // Motivos de cancelación: se guarda el texto tal cual en motivo_cierre (así se pueden contar)
 export const OTRO_MOTIVO = 'Otro motivo';
-// label: lo que ve quien cancela · valor: lo que se guarda (y lo que lee el tutor cuando cancela el médico)
+// Se guarda y se muestra tal cual lo elige quien cancela (el tutor lee literal lo que eligió el médico)
 export const MOTIVOS_MVZ = [
-  { label: 'El domicilio no corresponde a la zona', valor: 'El domicilio no corresponde a la alcaldía o municipio que indicaste en la solicitud.' },
-  { label: 'Tuve una urgencia personal o de salud', valor: 'El médico tuvo una urgencia personal o de salud.' },
-  { label: 'Problema con mi transporte', valor: 'El médico tuvo un problema con su transporte.' },
-  { label: 'Se me empalmó con otra consulta', valor: 'Al médico se le empalmó con otra consulta.' },
-  { label: 'El caso requiere atención en clínica u hospital', valor: 'El caso requiere atención en clínica u hospital.' },
-  { label: 'El tutor me pidió cancelar', valor: 'Pediste cancelar la consulta.' },
-  { label: 'No pude contactar al tutor', valor: 'El médico no pudo contactarte.' },
-];
+  'El domicilio no corresponde a la zona', 'Tuve una urgencia personal o de salud', 'Problema con mi transporte',
+  'Se me empalmó con otra consulta', 'El caso requiere atención en clínica u hospital', 'El tutor me pidió cancelar',
+  'No pude contactar al tutor',
+].map((m) => ({ label: m, valor: m }));
 export const MOTIVOS_TUTOR = [
   'Mi mascota ya está mejor', 'Ya no puedo en ese horario', 'Encontré atención en otro lugar',
   'Era una urgencia y fui a un hospital', 'El costo no me conviene',
-].map((m) => ({ label: m, valor: m + '.' }));
+].map((m) => ({ label: m, valor: m }));

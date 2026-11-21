@@ -135,7 +135,7 @@ group by 1, 2
 order by 1, veces desc;
 ```
 
-El motivo por domicilio es la fila "El domicilio no corresponde a la alcaldía o municipio que indicaste en la solicitud.".
+El motivo por domicilio es la fila "El domicilio no corresponde a la zona".
 
 ## Ver el diseño sin conectar nada
 
