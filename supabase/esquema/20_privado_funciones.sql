@@ -385,10 +385,10 @@ AS $function$
                           and not exists (select 1 from app.encuestas e where e.solicitud_id = s.id),
     'reportes', coalesce((select jsonb_agg(jsonb_build_object('tipo', r.tipo, 'estado', r.estado, 'decision', r.decision, 'resolucion', r.resolucion, 'created_at', r.created_at) order by r.created_at)
                           from app.reportes r where r.solicitud_id = s.id and r.autor_id = s.tutor_id), '[]'::jsonb),
-    -- Reportes del médico sobre esta consulta que esperan la versión del tutor
+    -- Reportes del médico de que el tutor no estaba: esperan la versión del tutor ("Otro asunto" no se le muestra)
     'reportes_mvz', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'tipo', r.tipo, 'detalle', r.detalle, 'estado', r.estado,
                       'version', r.version_medico, 'version_at', r.version_medico_at, 'created_at', r.created_at) order by r.created_at)
-                    from app.reportes r where r.solicitud_id = s.id and r.autor_id = s.mvz_id and r.tipo in ('tutor_ausente', 'otro')), '[]'::jsonb)
+                    from app.reportes r where r.solicitud_id = s.id and r.autor_id = s.mvz_id and r.tipo = 'tutor_ausente'), '[]'::jsonb)
   )
 $function$
 ;

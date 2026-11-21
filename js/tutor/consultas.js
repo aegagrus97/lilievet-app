@@ -6,14 +6,14 @@ import { useAccion, FormReporte, ElegirMotivo } from '../cuenta.js';
 
 const H = 36e5;
 
-// El médico reportó un problema con esta consulta: el tutor puede dar su versión en 48 horas
+// El médico reportó que el tutor no estaba o no permitió el acceso: el tutor puede dar su versión en 48 horas
 function VersionTutor({ r, recargar }) {
   const toast = useToast();
   const [texto, setTexto] = useState('');
   const [st, correr] = useAccion();
   const limite = new Date(new Date(r.created_at).getTime() + 48 * H);
   const enviar = async () => { if (await correr(() => api.responderReporteTutor(r.id, texto))) { toast('Enviamos tu versión. La revisamos antes de decidir.'); recargar(); } };
-  const titulo = r.tipo === 'tutor_ausente' ? 'El médico veterinario reportó que no estabas o no permitiste el acceso.' : 'El médico veterinario reportó un problema con esta consulta.';
+  const titulo = 'El médico veterinario reportó que no estabas o no permitiste el acceso.';
   return html`<div class="sub-box stack-sm">
     <p class="small"><b>${titulo}</b> "${r.detalle}"</p>
     ${r.version
