@@ -139,7 +139,10 @@ a { color: var(--primary); }
   .side-logo img { width: 40px; }
   .side-logo .full { display: none; }
   .side-logo .mini { display: block !important; }
-  .side .side-role, .side .side-group, .side .side-link span, .side .who-txt, .side .side-link .count, .side .tool span { display: none; }
+  .side .side-role, .side .side-group, .side .side-link span, .side .who-txt, .side .tool span { display: none; }
+  /* Menú de solo íconos: el número va como globito sobre el ícono */
+  .side .side-link { position: relative; }
+  .side .side-link .count { position: absolute; top: 2px; right: 2px; margin: 0; min-width: 18px; height: 18px; padding: 0 4px; font-size: 11px; line-height: 18px; box-shadow: 0 0 0 2px var(--surface-raised); }
   .side .side-tools { grid-template-columns: 1fr; }
   .side .tool { width: 52px; }
   .side .side-link { justify-content: center; padding: 0; width: 52px; }

@@ -17,8 +17,10 @@ function destino(a, rol) {
 
 export function Avisos({ perfil, onPerfil }) {
   const { datos, error, recargar } = useDatos(() => api.avisos(), []);
-  // Ya se marcaron como leídos: se actualiza el contador del menú
-  useEffect(() => { if (datos) onPerfil().catch(() => {}); }, [!!datos]);
+  // Al abrir la lista se marcan como leídos: se actualiza el contador del menú
+  useEffect(() => { if (datos) onPerfil().catch(() => {}); }, [datos]);
+  // Si llega un aviso nuevo mientras estás aquí, la lista se actualiza sola
+  useEffect(() => { if (datos && perfil.avisos_sin_leer > 0) recargar(); }, [perfil.avisos_sin_leer]);
 
   if (error) return html`<div class="page page-narrow"><${ErrorCarga} error=${error} onReintentar=${recargar} /></div>`;
   if (!datos) return html`<${Cargando} />`;

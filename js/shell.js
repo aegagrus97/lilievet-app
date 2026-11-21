@@ -110,7 +110,7 @@ export function Layout({ vista, ruta, perfil, conteos = {}, etiquetas, titulo, o
           ${g.items.map((i0) => items.find((x) => x.id === i0.id)).map((it) => html`<a key=${it.id} class="side-link" href=${'#/' + it.id} title=${it.label}
               aria-current=${actual === it.id ? 'page' : undefined}>
             <${Icon} name=${it.icon} /><span>${it.label}</span>
-            ${it.count && conteos[it.count] ? html`<b class="count" aria-label=${conteos[it.count] + ' pendientes'}>${conteos[it.count]}</b>` : null}
+            ${it.count && conteos[it.count] ? html`<b class="count" aria-label=${conteos[it.count] + ' pendientes'}>${conteos[it.count] > 9 ? '9+' : conteos[it.count]}</b>` : null}
           </a>`)}
         </div>`)}
       </nav>

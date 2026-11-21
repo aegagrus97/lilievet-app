@@ -83,11 +83,15 @@ function App() {
     }).catch(setErrorPerfil);
   }, [uid]);
 
-  // Tutor y médico: se revisa el perfil cada minuto (avisos sin leer, cambios hechos desde el Panel)
+  // Tutor y médico: se revisa el perfil cada 20 s mientras la pestaña está a la vista, y al volver a ella
+  // (número de avisos sin leer, cambios hechos desde el Panel)
   useEffect(() => {
     if (!uid || !vista || vista === 'admin') return undefined;
-    const t = setInterval(() => { recargarPerfil().catch(() => {}); }, 60000);
-    return () => clearInterval(t);
+    const revisar = () => { if (document.visibilityState === 'visible') recargarPerfil().catch(() => {}); };
+    const t = setInterval(revisar, 20000);
+    document.addEventListener('visibilitychange', revisar);
+    window.addEventListener('focus', revisar);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', revisar); window.removeEventListener('focus', revisar); };
   }, [uid, vista]);
 
   if (['terminos', 'privacidad', 'carta'].includes(seccion)) return html`<${PaginaDoc} doc=${seccion} />`;
