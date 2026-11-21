@@ -93,7 +93,7 @@ begin
 end $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.cancelar_solicitud(p_solicitud uuid)
+CREATE OR REPLACE FUNCTION public.cancelar_solicitud(p_solicitud uuid, p_motivo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -104,6 +104,8 @@ declare
   s app.solicitudes;
   v_reembolso boolean := false;
   v_estado text := 'cancelada_tutor';
+  -- Motivo elegido de la lista (opcional para compatibilidad con versiones anteriores de la app)
+  v_motivo text := nullif(privado.txt(p_motivo, 0, 300, 'El motivo'), '');
 begin
   select * into s from app.solicitudes where id = p_solicitud and tutor_id = t.id for update;
   if not found then perform privado.error('No encontramos esa solicitud.'); end if;
@@ -118,13 +120,13 @@ begin
     end if;
   end if;
 
-  update app.solicitudes set estado = v_estado, cerrada_at = now(), reagenda_propuesta_at = null where id = s.id;
+  update app.solicitudes set estado = v_estado, cerrada_at = now(), motivo_cierre = v_motivo, reagenda_propuesta_at = null where id = s.id;
   update app.solicitud_opciones set estado = 'descartada', respondida_at = now() where solicitud_id = s.id and estado in ('en_espera', 'pendiente');
   if s.mvz_id is not null then
     perform privado.avisar(s.mvz_id, 'cancelada', 'El tutor canceló una consulta',
       'Se canceló la consulta del ' || privado.cuando(s.inicia_at) || '. Ese horario vuelve a estar libre.', s.id);
   end if;
-  perform privado.auditar('cancelar_tutor', 'solicitud', s.id::text, jsonb_build_object('estado', v_estado, 'reembolso', v_reembolso));
+  perform privado.auditar('cancelar_tutor', 'solicitud', s.id::text, jsonb_build_object('estado', v_estado, 'reembolso', v_reembolso, 'motivo', v_motivo));
   return jsonb_build_object('estado', v_estado, 'reembolso', v_reembolso);
 end $function$
 ;

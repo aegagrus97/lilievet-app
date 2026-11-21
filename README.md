@@ -122,17 +122,20 @@ Hoy la app acepta domicilios en los 125 municipios del Estado de México (el tut
 
 En la fase piloto, si el médico cancela porque el domicilio no corresponde a la zona, al tutor se le reembolsa la cuota completa (como en cualquier cancelación del médico). Cuando haya datos, medir qué porcentaje de los reembolsos se debe a esto y decidir si se mantiene el reembolso en ese caso.
 
-Las cancelaciones por esta razón se reconocen porque el médico usa el motivo rápido, que guarda siempre el mismo texto en `motivo_cierre`. Consulta para el SQL Editor de Supabase:
+Desde el 20 nov 2026 el tutor y el médico eligen el motivo de una lista (`MOTIVOS_TUTOR` y `MOTIVOS_MVZ` en `js/lib.js`) y se guarda siempre el mismo texto en `motivo_cierre`; con "Otro motivo" se guarda lo que escriban. Consulta para el SQL Editor de Supabase (porcentaje de cada motivo, por quién canceló):
 
 ```sql
-select count(*) filter (where motivo_cierre like 'El domicilio no corresponde%') as por_domicilio,
-       count(*) as canceladas_por_medico,
-       round(100.0 * count(*) filter (where motivo_cierre like 'El domicilio no corresponde%') / nullif(count(*), 0), 1) as porcentaje
+select case when estado = 'cancelada_mvz' then 'médico' else 'tutor' end as quien,
+       coalesce(motivo_cierre, '(sin motivo: versión anterior)') as motivo,
+       count(*) as veces,
+       round(100.0 * count(*) / sum(count(*)) over (partition by estado = 'cancelada_mvz'), 1) as porcentaje
 from app.solicitudes
-where estado = 'cancelada_mvz';
+where estado in ('cancelada_mvz', 'cancelada_tutor', 'cancelada_tarde')
+group by 1, 2
+order by 1, veces desc;
 ```
 
-Ojo: si el médico escribe el motivo a mano en vez de usar el botón, no entra en la cuenta.
+El motivo por domicilio es la fila "El domicilio no corresponde a la alcaldía o municipio que indicaste en la solicitud.".
 
 ## Ver el diseño sin conectar nada
 

@@ -96,7 +96,7 @@ function supabaseApi() {
     medicosEnBloque: (alcaldia, servicio, inicia) => rpc('medicos_en_bloque', { p_alcaldia: alcaldia, p_servicio: servicio, p_inicia_at: inicia }),
     crearSolicitud: (p) => rpc('crear_solicitud', { p }),
     misSolicitudes: () => rpc('mis_solicitudes'),
-    cancelarSolicitud: (id) => rpc('cancelar_solicitud', { p_solicitud: id }),
+    cancelarSolicitud: (id, motivo) => rpc('cancelar_solicitud', { p_solicitud: id, p_motivo: motivo || null }),
     responderReagenda: (id, acepta) => rpc('responder_reagenda', { p_solicitud: id, p_acepta: acepta }),
     horariosReagenda: (id) => rpc('horarios_reagenda', { p_solicitud: id }),
     pedirReagenda: (id, inicia) => rpc('pedir_reagenda', { p_solicitud: id, p_inicia_at: inicia }),

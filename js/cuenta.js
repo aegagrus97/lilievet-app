@@ -1,5 +1,5 @@
 // Perfil (tutor y médico veterinario): datos, celular verificado, documentos aceptados y reportes generales.
-import { html, DS, Icon, useState, fechaHora, telBonito, soloDigitos, DOCUMENTO, REPORTE } from './lib.js';
+import { html, DS, Icon, useState, fechaHora, telBonito, soloDigitos, DOCUMENTO, REPORTE, OTRO_MOTIVO } from './lib.js';
 import { api } from './api.js';
 import { PageHead, useToast } from './shell.js';
 import { Soporte } from './legal.js';
@@ -79,6 +79,25 @@ function Nombre({ perfil, onPerfil }) {
       ${!fijo && html`<div><${DS.Button} variant="secondary" onClick=${guardar} disabled=${st.ocupado || !n.trim() || !a.trim() || (n === perfil.nombre && a === perfil.apellidos)}>Guardar<//></div>`}
     </div>
   <//>`;
+}
+
+// Motivo de cancelación: opciones fijas + "Otro motivo". onCambio recibe el texto a guardar ('' si falta algo).
+// otroObligatorio: con "Otro motivo" hay que escribir al menos 5 caracteres; si no, el texto es opcional.
+export function ElegirMotivo({ opciones, onCambio, otroObligatorio = true }) {
+  const [elegido, setElegido] = useState('');
+  const [texto, setTexto] = useState('');
+  const emitir = (e, t) => {
+    if (e !== OTRO_MOTIVO) return onCambio(e);
+    const limpio = t.trim();
+    onCambio(otroObligatorio ? (limpio.length >= 5 ? limpio : '') : (limpio ? OTRO_MOTIVO + ': ' + limpio : OTRO_MOTIVO + '.'));
+  };
+  const elegir = (v) => { setElegido(v); emitir(v, texto); };
+  return html`<div class="stack-sm">
+    <span class="small"><b>¿Por qué cancelas?</b></span>
+    <div class="row">${[...opciones, { label: OTRO_MOTIVO, valor: OTRO_MOTIVO }].map((o) => html`<${DS.Chip} key=${o.valor} checked=${elegido === o.valor} onChange=${() => elegir(o.valor)}>${o.label}<//>`)}</div>
+    ${elegido === OTRO_MOTIVO && html`<${DS.Field} label=${otroObligatorio ? 'Escribe el motivo' : 'Cuéntanos (opcional)'} maxLength=${280} value=${texto}
+      onChange=${(e) => { setTexto(e.target.value); emitir(OTRO_MOTIVO, e.target.value); }} />`}
+  </div>`;
 }
 
 export function FormReporte({ solicitudId = null, tipos, onListo, titulo = 'Enviar un reporte' }) {

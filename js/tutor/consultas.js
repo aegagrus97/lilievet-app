@@ -1,8 +1,8 @@
 // Consultas del tutor: estado, pago de la cuota, contacto del médico, cancelación, reagenda, reporte y encuesta.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, mascotaTxt, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, ventana, hora, falta, fechaDia, diaISO, fechaHora, telBonito, money, leyenda } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, mascotaTxt, ESTADO, OPCION, PAGO, REPORTE, MEDIO_PAGO, ventana, hora, falta, fechaDia, diaISO, fechaHora, telBonito, money, leyenda, MOTIVOS_TUTOR } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
-import { useAccion, FormReporte } from '../cuenta.js';
+import { useAccion, FormReporte, ElegirMotivo } from '../cuenta.js';
 
 const H = 36e5;
 
@@ -70,6 +70,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
   const toast = useToast();
   const [st, correr, limpiar] = useAccion();
   const [modo, setModo] = useState(null);           // null | cancelar | reporte
+  const [motivo, setMotivo] = useState('');
   const [tono, palabra, texto] = ESTADO[s.estado];
   const m = s.medico;
   const horasAntes = (new Date(s.inicia_at) - Date.now()) / H;
@@ -87,7 +88,7 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
     if (s.estado === 'por_pagar') pagar();
   }, []);
   const cancelar = async () => {
-    const r = await correr(() => api.cancelarSolicitud(s.id));
+    const r = await correr(() => api.cancelarSolicitud(s.id, motivo));
     if (r) { setModo(null); toast(r.reembolso ? 'Consulta cancelada. Te reembolsamos la cuota completa.' : 'Solicitud cancelada.'); recargar(); }
   };
   const reagenda = async (acepta) => { if (await correr(() => api.responderReagenda(s.id, acepta))) { toast(acepta ? 'Nuevo horario confirmado.' : 'Se conserva el horario actual.'); recargar(); } };
@@ -146,14 +147,15 @@ function Tarjeta({ s, P, abierta, recargar, autoPagar }) {
       <p class="small">${s.estado !== 'confirmada' ? 'Aún no has pagado nada: no hay ningún cargo.'
         : conReembolso ? `Faltan más de ${P.horas_cancelacion} horas: te reembolsamos la cuota de servicio completa.`
         : `Faltan menos de ${P.horas_cancelacion} horas: la cuota de servicio no se reembolsa.${puedeCambiar ? ' Si prefieres otro horario, mejor pide un cambio: tu cuota se conserva.' : ''}`}</p>
-      <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => { setModo(null); limpiar(); }}>No<//></div>
+      <${ElegirMotivo} opciones=${MOTIVOS_TUTOR} onCambio=${setMotivo} otroObligatorio=${false} />
+      <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || !motivo} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => { setModo(null); limpiar(); }}>No<//></div>
     </div>`}
     ${modo === 'reporte' && html`<div class="sub-box"><${FormReporte} solicitudId=${s.id} tipos=${['inasistencia_mvz', 'reembolso', 'otro']} onListo=${recargar} /></div>`}
     ${modo === 'horario' && html`<${PedirHorario} s=${s} onCerrar=${() => setModo(null)} onListo=${() => { setModo(null); toast('Le pedimos el cambio a tu médico veterinario.'); recargar(); }} />`}
 
     ${!modo && html`<div class="row">
       ${puedeCambiar && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('horario')}>Pedir otro horario<//>`}
-      ${['buscando', 'por_pagar', 'confirmada'].includes(s.estado) && !empezo && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('cancelar')}>Cancelar ${s.estado === 'confirmada' ? 'consulta' : 'solicitud'}<//>`}
+      ${['buscando', 'por_pagar', 'confirmada'].includes(s.estado) && !empezo && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => { setMotivo(''); setModo('cancelar'); }}>Cancelar ${s.estado === 'confirmada' ? 'consulta' : 'solicitud'}<//>`}
       ${puedeReportar && !abierto && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('reporte')}>Reportar un problema o pedir reembolso<//>`}
     </div>`}
   </article>`;

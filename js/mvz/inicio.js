@@ -1,10 +1,8 @@
 // Solicitudes del médico veterinario: aceptar o rechazar, consultas confirmadas con contacto, cancelar y reagendar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora, mascotaTxt } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, ESPECIE, HORAS, bloqueTxt, ventana, falta, telBonito, money, hoyISO, fechaHora, mascotaTxt, MOTIVOS_MVZ } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, useDatos, ir, useToast, ErrorCarga, Cargando } from '../shell.js';
-import { Caja, useAccion, FormReporte } from '../cuenta.js';
-
-const MOTIVO_DOMICILIO = 'El domicilio no corresponde a la alcaldía o municipio que indicaste en la solicitud.';
+import { Caja, useAccion, FormReporte, ElegirMotivo } from '../cuenta.js';
 
 const H = 36e5;
 
@@ -134,15 +132,14 @@ function Consulta({ s, recargar }) {
       <p><b>¿Cancelar esta consulta?</b></p><p class="small">${s.estado === 'por_pagar'
         ? 'El tutor todavía no ha pagado, así que no se le cobra nada. Le avisamos que cancelaste para que pueda pedir otra consulta.'
         : 'Al tutor se le reembolsa la cuota de servicio completa.'}${puedeCambiar ? ' Si puedes atender otro día, mejor propón otro horario.' : ''}</p>
-      ${s.estado === 'confirmada' && html`<p class="small">¿El domicilio no está en la zona que indicó el tutor? Puedes cancelar sin problema; elige el motivo para que el tutor sepa por qué.</p>
-      <div class="row"><${DS.Chip} checked=${motivo === MOTIVO_DOMICILIO} onChange=${() => setMotivo(motivo === MOTIVO_DOMICILIO ? '' : MOTIVO_DOMICILIO)}>El domicilio no corresponde a la zona<//></div>`}
-      <${DS.Field} label="Motivo" maxLength=${300} value=${motivo} onChange=${(e) => setMotivo(e.target.value)} />
+      <${ElegirMotivo} opciones=${s.estado === 'confirmada' ? MOTIVOS_MVZ : MOTIVOS_MVZ.slice(1)} onCambio=${setMotivo} />
+      <p class="small muted">El tutor verá el motivo.</p>
       <div class="row"><${DS.Button} size="sm" disabled=${st.ocupado || motivo.trim().length < 5} onClick=${cancelar}>Sí, cancelar<//><${DS.Button} size="sm" variant="secondary" onClick=${() => setModo(null)}>No<//></div>
     </div>`}
     ${modo === 'reporte' && html`<div class="sub-box"><${FormReporte} solicitudId=${s.id} tipos=${['tutor_ausente', 'otro']} onListo=${recargar} /></div>`}
     ${!modo && ['por_pagar', 'confirmada', 'realizada'].includes(s.estado) && html`<div class="row">
       ${puedeCambiar && html`<${DS.Button} size="sm" variant="secondary" onClick=${() => setModo('reagendar')}>Proponer otro horario<//>`}
-      ${s.estado !== 'realizada' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('cancelar')}>Cancelar consulta<//>`}
+      ${s.estado !== 'realizada' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => { setMotivo(''); setModo('cancelar'); }}>Cancelar consulta<//>`}
       ${empezo && s.estado !== 'por_pagar' && html`<${DS.Button} size="sm" variant="ghost" onClick=${() => setModo('reporte')}>Reportar un problema<//>`}
     </div>`}
   </article>`;

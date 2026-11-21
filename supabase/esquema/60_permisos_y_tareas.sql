@@ -20,7 +20,7 @@ grant execute on function
   public.mi_perfil(), public.guardar_nombre(text, text), public.mis_avisos(),
   public.cambiar_telefono(text), public.sincronizar_telefono(),
   public.bloques_en_zona(text, text), public.medicos_en_bloque(text, text, timestamptz),
-  public.crear_solicitud(jsonb), public.mis_solicitudes(), public.cancelar_solicitud(uuid),
+  public.crear_solicitud(jsonb), public.mis_solicitudes(), public.cancelar_solicitud(uuid, text),
   public.responder_reagenda(uuid, boolean), public.reportar(uuid, text, text), public.responder_encuesta(uuid, jsonb),
   public.guardar_perfil_mvz(jsonb), public.guardar_horario(jsonb), public.bloquear_dia(date, boolean),
   public.mis_solicitudes_mvz(), public.responder_solicitud(uuid, boolean), public.cancelar_como_mvz(uuid, text),
