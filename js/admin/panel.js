@@ -293,13 +293,29 @@ const Demanda = () => html`<${Lista} fn=${() => api.admin.demanda()}>${(lista) =
   <//>`}<//>`;
 
 // ───────── Encuestas, bitácora y parámetros ─────────
+// Resumen general de todas las respuestas (nunca por médico): las encuestas no se usan para decidir sobre un médico
+function ResumenEncuestas({ lista }) {
+  const prom = (k) => { const v = lista.map((e) => e[k]).filter((x) => x != null); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
+  const rec = lista.map((e) => e.recomendaria).filter((x) => x != null);
+  const nps = rec.length ? Math.round(100 * (rec.filter((x) => x >= 9).length - rec.filter((x) => x <= 6).length) / rec.length) : null;
+  const llego = lista.filter((e) => e.se_presento).length;
+  return html`<div class="kpis" style=${{ marginBottom: 16 }}>
+    <div class="kpi"><span>El médico se presentó</span><b>${Math.round(100 * llego / lista.length)}%</b><small>${llego} de ${lista.length} respuestas</small></div>
+    <div class="kpi"><span>Puntualidad</span><b>${prom('puntualidad')}</b><small>promedio, de 1 a 5</small></div>
+    <div class="kpi"><span>Trato</span><b>${prom('trato')}</b><small>promedio, de 1 a 5</small></div>
+    <div class="kpi"><span>Recomendación (NPS)</span><b>${nps == null ? '—' : (nps > 0 ? '+' : '') + nps}</b><small>de −100 a +100 · ${rec.length} respuestas</small></div>
+  </div>`;
+}
+
 const Encuestas = () => html`<${Lista} fn=${() => api.admin.encuestas()}>${(lista) => html`<${Caja} titulo="Encuestas privadas" sub="Sirven para mejorar el servicio. No se publican ni se usan para decidir sobre un médico veterinario.">
   ${!lista.length && html`<${Vacio}>Aún no hay respuestas.<//>`}
+  ${lista.length > 0 && html`<${ResumenEncuestas} lista=${lista} />`}
   ${lista.length > 0 && html`<${Tabla} cab=${['Consulta', 'Médico', '¿Se presentó?', 'Puntualidad', 'Trato', 'Recomendaría', 'Comentario']}>
     ${lista.map((e) => html`<tr key=${e.solicitud_id}><td class="nw">${SERVICIO[e.servicio]}<br /><span class="small muted">${fechaHora(e.inicia_at)}</span></td><td>${e.medico}</td>
       <td>${e.se_presento ? 'Sí' : 'No'}</td><td class="num">${e.puntualidad ?? '—'}</td><td class="num">${e.trato ?? '—'}</td><td class="num">${e.recomendaria ?? '—'}</td>
       <td class="small" style=${{ overflowWrap: 'anywhere' }}>${e.comentario || ''}</td></tr>`)}
-  <//>`}<//>`}<//>`;
+  <//>`}
+  ${lista.length > 0 && html`<p class="small muted" style=${{ marginTop: 12 }}>Resumen de las últimas ${lista.length} respuestas de toda la app, no por médico. NPS: porcentaje que responde 9 o 10 a “¿Recomendarías LilieVET?” menos el porcentaje que responde de 0 a 6. Puntualidad y trato solo cuentan cuando el médico se presentó.</p>`}<//>`}<//>`;
 
 const Bitacora = () => html`<${Lista} fn=${() => api.admin.bitacora()}>${(lista) => html`<${Caja} titulo="Bitácora" sub="Acciones del Panel, cancelaciones, reembolsos y eventos de pago. No se puede editar.">
   ${!lista.length && html`<${Vacio}>Sin movimientos.<//>`}
