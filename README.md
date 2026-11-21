@@ -112,9 +112,9 @@ En el correo que llega (Edge Function `supabase/functions/enviar-avisos`), la l�
 
 ### Pendiente: revisar la cobertura en el Estado de México (20 nov 2026)
 
-Hoy la app ya acepta domicilios en 18 municipios de la zona conurbada (el tutor elige el municipio; la app solo verifica que el C.P. sea 50000–57999). Se deja así por ahora. Revisarlo cuando LilieVET se extienda formalmente al Edomex o cuando el Panel → Demanda muestre solicitudes desde allá:
+Hoy la app acepta domicilios en los 125 municipios del Estado de México (el tutor elige el municipio; la app solo verifica que el C.P. sea 50000–57999). Se deja así por ahora. Revisarlo cuando LilieVET se extienda formalmente al Edomex o cuando el Panel → Demanda muestre solicitudes desde allá:
 
-- Qué municipios agregar o quitar de la lista (`privado.municipios_edomex()` en `supabase/esquema/20_privado_funciones.sql` y `EDOMEX` en `js/demo.js`).
+- Si conviene limitar la lista a los municipios donde sí hay cobertura (`privado.municipios_edomex()` en `supabase/esquema/20_privado_funciones.sql` y `EDOMEX` en `js/demo.js`).
 - Si conviene validar el municipio con más precisión que solo el rango de C.P.
 - Si hay médicos que marquen esas zonas; sin ellos, las solicitudes de allá quedan sin médico.
 

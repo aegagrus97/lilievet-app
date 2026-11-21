@@ -454,3 +454,6 @@ label.lv-btn:focus-within { box-shadow: var(--focus-ring); }
 
 /* Alcaldía detectada a partir del código postal */
 .cp-alcaldia { margin: 0; min-height: 44px; display: flex; align-items: center; padding: 0 var(--espacio-3); border-radius: var(--radio-md); background: var(--surface-soft); border: 1px solid var(--line); font-weight: 500; }
+
+/* Zonas del médico: Estado de México plegable */
+.zonas-edomex summary { cursor: pointer; padding: 4px 0; }

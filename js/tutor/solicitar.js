@@ -198,8 +198,7 @@ export function Solicitar({ perfil }) {
           : html`<div class="stack-sm"><span class="small"><b>Alcaldía</b></span>
               <p class="cp-alcaldia">${d.alcaldia || html`<span class="muted">Escribe tu código postal</span>`}</p></div>`}
       </div>
-      ${cpFuera && html`<${DS.Notice} tone="error">Ese código postal no está en nuestra zona. Por ahora LilieVET atiende en la Ciudad de México y en municipios del Estado de México cercanos a la CDMX; revisa que esté bien escrito.<//>`}
-      ${edomex && html`<p class="small muted">Si tu municipio no aparece, todavía no llegamos ahí.</p>`}
+      ${cpFuera && html`<${DS.Notice} tone="error">Ese código postal no está en nuestra zona. Por ahora LilieVET atiende en la Ciudad de México y el Estado de México; revisa que esté bien escrito.<//>`}
       <${DS.Field} label="Colonia" maxLength=${80} autoComplete="address-level3" value=${d.colonia} onChange=${set('colonia')} />
       <${DS.Field} label="Calle y número" maxLength=${120} autoComplete="address-line1" value=${d.calle_numero} onChange=${set('calle_numero')} />
       <${DS.Field} label="Referencias (opcional)" maxLength=${200} value=${d.referencias} onChange=${set('referencias')} hint="Color de la fachada, entre qué calles, número interior." />

@@ -32,8 +32,10 @@ export function Agenda({ perfil, onPerfil }) {
       <div class="stack">
         <span class="small"><b>Ciudad de México</b></span>
         <div class="row">${perfil.parametros.alcaldias.filter((a) => !(perfil.parametros.municipios_edomex || []).includes(a)).map((a) => html`<${DS.Chip} key=${a} checked=${zonas.includes(a)} onChange=${zona(a)}>${a}<//>`)}</div>
-        ${(perfil.parametros.municipios_edomex || []).length > 0 && html`<span class="small"><b>Estado de México</b></span>
-        <div class="row">${perfil.parametros.municipios_edomex.map((a) => html`<${DS.Chip} key=${a} checked=${zonas.includes(a)} onChange=${zona(a)}>${a}<//>`)}</div>`}
+        ${(perfil.parametros.municipios_edomex || []).length > 0 && html`<details class="zonas-edomex" open=${perfil.parametros.municipios_edomex.some((a) => zonas.includes(a))}>
+          <summary class="small"><b>Estado de México</b> · ${((n) => n === 0 ? 'ninguno elegido' : n === 1 ? '1 elegido' : n + ' elegidos')(perfil.parametros.municipios_edomex.filter((a) => zonas.includes(a)).length)}</summary>
+          <div class="row" style=${{ marginTop: 8 }}>${perfil.parametros.municipios_edomex.map((a) => html`<${DS.Chip} key=${a} checked=${zonas.includes(a)} onChange=${zona(a)}>${a}<//>`)}</div>
+        </details>`}
         ${stZ.error && html`<${DS.Notice} tone="error">${stZ.error}<//>`}
         <div><${DS.Button} variant="secondary" disabled=${stZ.ocupado} onClick=${guardarZonas}>Guardar zonas<//></div>
       </div>
