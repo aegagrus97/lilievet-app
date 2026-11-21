@@ -1,5 +1,5 @@
 // Solicitar una consulta: servicio → domicilio → horario → médicos (1ª, 2ª y 3ª opción) → confirmar.
-import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda, FotoMvz, alcaldiaDeCP } from '../lib.js';
+import { html, DS, Icon, useState, useEffect, SERVICIO, SERVICIO_DESC, ESPECIE, SEXO, mascotaTxt, MEDIO_PAGO, hora, diaRelativo, diaISO, ventana, fechaDia, money, leyenda, FotoMvz, alcaldiaDeCP, esCPEdomex } from '../lib.js';
 import { api } from '../api.js';
 import { PageHead, ir, useToast } from '../shell.js';
 import { useAccion } from '../cuenta.js';
@@ -55,6 +55,15 @@ function desdeBorrador(uid) {
   return [d, completo ? 3 : 1, false];
 }
 
+// Alcaldía o municipio según el C.P.: en la CDMX sale del código; en el Edomex se conserva el municipio
+// elegido si es de la lista (si no, el tutor lo elige)
+function zonaDeCP(cp, actual, P) {
+  const a = alcaldiaDeCP(cp, P.alcaldias);
+  if (a) return a;
+  if (esCPEdomex(cp)) return (P.municipios_edomex || []).includes(actual) ? actual : '';
+  return '';
+}
+
 // "Para continuar falta: …" bajo un botón deshabilitado
 const lista = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : xs[0]);
 const Falta = ({ que }) => (que.length ? html`<p class="small falta-aviso" role="status"><${Icon} name="alert" /> Para continuar falta ${lista(que)}.</p>` : null);
@@ -65,7 +74,7 @@ export function Solicitar({ perfil }) {
   const [inicial] = useState(() => desdeBorrador(perfil.id));
   const [paso, setPaso] = useState(inicial[1]);
   // La alcaldía siempre sale del código postal (también en borradores y en "Buscar de nuevo")
-  const [d, setD] = useState(() => ({ ...inicial[0], alcaldia: alcaldiaDeCP(inicial[0].cp, P.alcaldias) || '' }));
+  const [d, setD] = useState(() => ({ ...inicial[0], alcaldia: zonaDeCP(inicial[0].cp, inicial[0].alcaldia, P) }));
   const [recuperado, setRecuperado] = useState(inicial[2]);
   // Se guarda el borrador conforme avanza (y el paso donde va)
   useEffect(() => { guardarBorrador(perfil.id, d, paso); }, [d, paso]);
@@ -121,10 +130,12 @@ export function Solicitar({ perfil }) {
     edadMeses !== null && edadMeses > 360 && 'una edad de hasta 30 años',
     largoMotivo < motivoMin && (largoMotivo ? `contar un poco más de qué le pasa (mínimo ${motivoMin} caracteres; llevas ${largoMotivo})` : `contar qué le pasa a tu mascota (mínimo ${motivoMin} caracteres)`),
   ].filter(Boolean);
-  const cpFuera = /^\d{5}$/.test(d.cp) && !alcaldiaDeCP(d.cp, P.alcaldias);
+  const edomex = esCPEdomex(d.cp);
+  const cpFuera = /^\d{5}$/.test(d.cp) && !alcaldiaDeCP(d.cp, P.alcaldias) && !edomex;
   const faltan2 = [
     !/^\d{5}$/.test(d.cp) && 'el código postal de 5 dígitos',
-    cpFuera && 'un código postal de la Ciudad de México',
+    cpFuera && 'un código postal de la CDMX o del Estado de México',
+    edomex && !d.alcaldia && 'tu municipio',
     d.colonia.trim().length < 2 && 'la colonia',
     d.calle_numero.trim().length < 3 && 'la calle y el número',
   ].filter(Boolean);
@@ -176,15 +187,19 @@ export function Solicitar({ perfil }) {
     </section>`}
 
     ${paso === 2 && html`<section class="box stack">
-      <${DS.Notice} tone="info">Tu domicilio completo solo se comparte con el médico veterinario cuando la consulta queda confirmada. Antes solo ve la colonia y la alcaldía.<//>
+      <${DS.Notice} tone="info">Tu domicilio completo solo se comparte con el médico veterinario cuando la consulta queda confirmada. Antes solo ve la colonia y la alcaldía o municipio.<//>
       <div class="field-row">
         <${DS.Field} label="Código postal" inputMode="numeric" maxLength=${5} autoComplete="postal-code" value=${d.cp}
-          onChange=${(e) => { const cp = e.target.value.replace(/\D/g, '').slice(0, 5); const a = alcaldiaDeCP(cp, P.alcaldias) || ''; setD({ ...d, cp, alcaldia: a, ...(a !== d.alcaldia ? { inicia_at: null, medicos: [] } : {}) }); }}
-          hint=${cpFuera ? '' : 'Con tu código postal sabemos tu alcaldía.'} />
-        <div class="stack-sm"><span class="small"><b>Alcaldía</b></span>
-          <p class="cp-alcaldia">${d.alcaldia || html`<span class="muted">Escribe tu código postal</span>`}</p></div>
+          onChange=${(e) => { const cp = e.target.value.replace(/\D/g, '').slice(0, 5); const a = zonaDeCP(cp, d.alcaldia, P); setD({ ...d, cp, alcaldia: a, ...(a !== d.alcaldia ? { inicia_at: null, medicos: [] } : {}) }); }}
+          hint=${cpFuera ? '' : edomex ? 'Es un código del Estado de México: elige tu municipio.' : 'Con tu código postal sabemos tu alcaldía.'} />
+        ${edomex
+          ? html`<${DS.Field} as="select" label="Municipio" value=${d.alcaldia} onChange=${(e) => setD({ ...d, alcaldia: e.target.value, inicia_at: null, medicos: [] })}
+              options=${[{ value: '', label: 'Elige tu municipio' }, ...(P.municipios_edomex || []).map((a) => ({ value: a, label: a }))]} />`
+          : html`<div class="stack-sm"><span class="small"><b>Alcaldía</b></span>
+              <p class="cp-alcaldia">${d.alcaldia || html`<span class="muted">Escribe tu código postal</span>`}</p></div>`}
       </div>
-      ${cpFuera && html`<${DS.Notice} tone="error">Ese código postal no es de la Ciudad de México. Por ahora LilieVET solo atiende en la CDMX; revisa que esté bien escrito.<//>`}
+      ${cpFuera && html`<${DS.Notice} tone="error">Ese código postal no está en nuestra zona. Por ahora LilieVET atiende en la Ciudad de México y en municipios del Estado de México cercanos a la CDMX; revisa que esté bien escrito.<//>`}
+      ${edomex && html`<p class="small muted">Si tu municipio no aparece, todavía no llegamos ahí.</p>`}
       <${DS.Field} label="Colonia" maxLength=${80} autoComplete="address-level3" value=${d.colonia} onChange=${set('colonia')} />
       <${DS.Field} label="Calle y número" maxLength=${120} autoComplete="address-line1" value=${d.calle_numero} onChange=${set('calle_numero')} />
       <${DS.Field} label="Referencias (opcional)" maxLength=${200} value=${d.referencias} onChange=${set('referencias')} hint="Color de la fachada, entre qué calles, número interior." />

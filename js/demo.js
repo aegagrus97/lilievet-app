@@ -10,7 +10,8 @@ function bloque(dias, hora) {
 const mas2 = (iso) => new Date(new Date(iso).getTime() + 2 * H).toISOString();
 const espera = (v, ms = 250) => new Promise((r) => setTimeout(() => r(JSON.parse(JSON.stringify(v ?? null))), ms));
 const ALCALDIAS = ['Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez', 'Coyoacán', 'Cuajimalpa', 'Cuauhtémoc', 'Gustavo A. Madero', 'Iztacalco', 'Iztapalapa', 'Magdalena Contreras', 'Miguel Hidalgo', 'Milpa Alta', 'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'];
-const PARAMS = { cuota: 120, minutos_respuesta: 60, horas_cancelacion: 24, horas_para_pagar: 12, exigir_telefono: true, alcaldias: ALCALDIAS };
+const EDOMEX = ['Atizapán de Zaragoza', 'Chalco', 'Chimalhuacán', 'Coacalco', 'Cuautitlán', 'Cuautitlán Izcalli', 'Ecatepec', 'Huixquilucan', 'Ixtapaluca', 'La Paz', 'Naucalpan', 'Nezahualcóyotl', 'Nicolás Romero', 'Tecámac', 'Texcoco', 'Tlalnepantla', 'Tultitlán', 'Valle de Chalco'];
+const PARAMS = { cuota: 120, minutos_respuesta: 60, horas_cancelacion: 24, horas_para_pagar: 12, exigir_telefono: true, alcaldias: [...ALCALDIAS, ...EDOMEX], municipios_edomex: EDOMEX };
 
 const MEDICOS = [
   { id: 'm1', nombre: 'Mariana Ortega Ruiz', cedula: '10458231', cedula_verificada_at: en(-24 * 20), presentacion: 'Medicina preventiva y geriatría en perros y gatos. Manejo libre de miedo.', precio: 650, medios_pago: ['efectivo', 'transferencia', 'tarjeta'] },

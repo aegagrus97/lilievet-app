@@ -160,6 +160,7 @@ declare
   v_medicos uuid[];
   v_id uuid;
   v_edad integer;
+  v_cp_ok boolean;
   i integer;
 begin
   if privado.param('exigir_telefono_verificado') = 'true'::jsonb and t.telefono_verificado_at is null then
@@ -172,12 +173,18 @@ begin
     perform privado.error('Para solicitar, acepta que compartamos tus datos de contacto con el médico veterinario que confirme tu consulta.');
   end if;
   if v_servicio is null or v_servicio not in ('consulta', 'vacunacion', 'desparasitacion') then perform privado.error('Elige un servicio.'); end if;
-  if v_alcaldia is null or not (v_alcaldia = any (privado.alcaldias())) then perform privado.error('Elige una alcaldía de la lista.'); end if;
+  if v_alcaldia is null or not (v_alcaldia = any (privado.alcaldias())) then perform privado.error('Elige una alcaldía o municipio de la lista.'); end if;
   if coalesce(p ->> 'especie', '') not in ('perro', 'gato') then perform privado.error('Elige perro o gato.'); end if;
   if coalesce(p ->> 'cp', '') !~ '^[0-9]{5}$' then perform privado.error('Escribe un código postal de 5 dígitos.'); end if;
-  -- En la CDMX los dos primeros dígitos del C.P. indican la alcaldía (01 Álvaro Obregón … 16 Xochimilco)
-  if privado.alcaldia_de_cp(p ->> 'cp') is distinct from v_alcaldia then
-    perform privado.error('Tu código postal no corresponde a la alcaldía. Revisa tu domicilio.');
+  -- CDMX: los dos primeros dígitos del C.P. indican la alcaldía (01 Álvaro Obregón … 16 Xochimilco).
+  -- Estado de México: el C.P. debe ser del estado (50000–57999); el municipio lo elige el tutor.
+  if v_alcaldia = any (privado.municipios_edomex()) then
+    v_cp_ok := privado.es_cp_edomex(p ->> 'cp');
+  else
+    v_cp_ok := privado.alcaldia_de_cp(p ->> 'cp') is not distinct from v_alcaldia;
+  end if;
+  if not v_cp_ok then
+    perform privado.error('Tu código postal no corresponde a la alcaldía o municipio. Revisa tu domicilio.');
   end if;
   if coalesce(p ->> 'sexo', '') not in ('macho', 'hembra') then perform privado.error('Elige si tu mascota es macho o hembra.'); end if;
   if coalesce(p ->> 'edad_meses', '') ~ '^[0-9]{1,3}$' then v_edad := (p ->> 'edad_meses')::integer; end if;
@@ -295,7 +302,7 @@ begin
   select coalesce(array_agg(distinct x), '{}') into v_medios from jsonb_array_elements_text(coalesce(p -> 'medios_pago', '[]'::jsonb)) x;
   if not (v_medios <@ array['efectivo', 'transferencia', 'tarjeta']) then perform privado.error('Elige medios de pago de la lista.'); end if;
   select coalesce(array_agg(distinct x), '{}') into v_zonas from jsonb_array_elements_text(coalesce(p -> 'zonas', '[]'::jsonb)) x;
-  if not (v_zonas <@ privado.alcaldias()) then perform privado.error('Elige alcaldías de la lista.'); end if;
+  if not (v_zonas <@ privado.alcaldias()) then perform privado.error('Elige alcaldías o municipios de la lista.'); end if;
 
   begin
     update app.mvz set

@@ -59,7 +59,7 @@ begin
       'cuota', privado.param_int('cuota_servicio'), 'minutos_respuesta', privado.param_int('minutos_respuesta'),
       'horas_cancelacion', privado.param_int('horas_cancelacion'), 'horas_para_pagar', privado.param_int('horas_para_pagar'),
       'exigir_telefono', privado.param('exigir_telefono_verificado') = 'true'::jsonb,
-      'alcaldias', to_jsonb(privado.alcaldias()))
+      'alcaldias', to_jsonb(privado.alcaldias()), 'municipios_edomex', to_jsonb(privado.municipios_edomex()))
   );
 end $function$
 ;

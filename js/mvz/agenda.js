@@ -28,9 +28,12 @@ export function Agenda({ perfil, onPerfil }) {
 
   return html`<div class="page">
     <${PageHead} titulo="Agenda" sub="Dónde y cuándo puedes atender. Los tutores solo ven los bloques libres." />
-    <${Caja} titulo="Zonas donde atiendes" sub="Elige las alcaldías a las que sí llegas a tiempo.">
+    <${Caja} titulo="Zonas donde atiendes" sub="Elige las alcaldías y municipios a los que sí llegas a tiempo.">
       <div class="stack">
-        <div class="row">${perfil.parametros.alcaldias.map((a) => html`<${DS.Chip} key=${a} checked=${zonas.includes(a)} onChange=${zona(a)}>${a}<//>`)}</div>
+        <span class="small"><b>Ciudad de México</b></span>
+        <div class="row">${perfil.parametros.alcaldias.filter((a) => !(perfil.parametros.municipios_edomex || []).includes(a)).map((a) => html`<${DS.Chip} key=${a} checked=${zonas.includes(a)} onChange=${zona(a)}>${a}<//>`)}</div>
+        ${(perfil.parametros.municipios_edomex || []).length > 0 && html`<span class="small"><b>Estado de México</b></span>
+        <div class="row">${perfil.parametros.municipios_edomex.map((a) => html`<${DS.Chip} key=${a} checked=${zonas.includes(a)} onChange=${zona(a)}>${a}<//>`)}</div>`}
         ${stZ.error && html`<${DS.Notice} tone="error">${stZ.error}<//>`}
         <div><${DS.Button} variant="secondary" disabled=${stZ.ocupado} onClick=${guardarZonas}>Guardar zonas<//></div>
       </div>

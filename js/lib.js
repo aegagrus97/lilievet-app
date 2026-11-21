@@ -133,6 +133,8 @@ export function alcaldiaDeCP(cp, alcaldias) {
   const n = Number(cp.slice(0, 2));
   return n >= 1 && n <= 16 ? alcaldias[n - 1] : null;
 }
+// Estado de México: el C.P. solo indica el estado (50000–57999); el municipio lo elige el tutor
+export const esCPEdomex = (cp) => /^5[0-7]\d{3}$/.test(cp || '');
 export const SEXO = { macho: 'Macho', hembra: 'Hembra' };
 // Foto redonda del médico veterinario; sin foto, sus iniciales
 export function FotoMvz({ ruta, nombre = '', tam = 56 }) {

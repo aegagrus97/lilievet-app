@@ -47,6 +47,25 @@ begin
 end $function$
 ;
 
+-- Municipios del Estado de México que se atienden (zona conurbada). Las 16 alcaldías de la CDMX van primero
+-- en privado.alcaldias(), en el orden de su código postal (01 … 16); estos municipios van después.
+CREATE OR REPLACE FUNCTION privado.municipios_edomex()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$ select array['Atizapán de Zaragoza', 'Chalco', 'Chimalhuacán', 'Coacalco', 'Cuautitlán', 'Cuautitlán Izcalli', 'Ecatepec', 'Huixquilucan', 'Ixtapaluca', 'La Paz', 'Naucalpan', 'Nezahualcóyotl', 'Nicolás Romero', 'Tecámac', 'Texcoco', 'Tlalnepantla', 'Tultitlán', 'Valle de Chalco'] $function$
+;
+
+-- En el Estado de México el C.P. solo indica el estado (50000–57999), no el municipio
+CREATE OR REPLACE FUNCTION privado.es_cp_edomex(p_cp text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$ select coalesce(p_cp ~ '^5[0-7][0-9]{3}$', false) $function$
+;
+
 CREATE OR REPLACE FUNCTION privado.alcaldias()
  RETURNS text[]
  LANGUAGE sql
@@ -54,7 +73,7 @@ CREATE OR REPLACE FUNCTION privado.alcaldias()
  SET search_path TO ''
 AS $function$ select array['Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez', 'Coyoacán', 'Cuajimalpa', 'Cuauhtémoc',
   'Gustavo A. Madero', 'Iztacalco', 'Iztapalapa', 'Magdalena Contreras', 'Miguel Hidalgo', 'Milpa Alta',
-  'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'] $function$
+  'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'] || privado.municipios_edomex() $function$
 ;
 
 -- Alcaldía según el código postal (CDMX: los dos primeros dígitos)
