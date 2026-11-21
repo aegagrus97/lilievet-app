@@ -11,10 +11,40 @@ const ORDEN = ['Primera opción', 'Segunda opción', 'Tercera opción'];
 // "Buscar de nuevo" desde Inicio: la siguiente solicitud empieza con los datos de una anterior
 let borrador = null;
 export const prellenarSolicitud = (s) => { borrador = s; };
-function desdeBorrador() {
+const VACIA = { servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false };
+
+// Borrador en esta pestaña (sessionStorage): sobrevive a recargar la página y se borra al cerrar la pestaña.
+// Lleva el domicilio, así que no se guarda de forma permanente. Caduca a las 12 horas.
+const claveBorrador = (uid) => `lv-solicitud-${uid}`;
+const DOCE_H = 12 * 36e5;
+function leerGuardado(uid) {
+  try {
+    const g = JSON.parse(sessionStorage.getItem(claveBorrador(uid)) || 'null');
+    if (!g || typeof g !== 'object' || !g.d || Date.now() - g.guardado > DOCE_H) return null;
+    const d = { ...VACIA, ...g.d, no_es_urgencia: false, acepta_transferencia: false }; // el consentimiento se vuelve a pedir
+    let paso = Math.min(Math.max(Number(g.paso) || 1, 1), 5);
+    if (d.inicia_at && new Date(d.inicia_at).getTime() < Date.now()) { d.inicia_at = null; d.medicos = []; }
+    if (paso >= 4 && !d.inicia_at) paso = 3;
+    if (paso >= 5 && !(d.medicos || []).length) paso = 4;
+    return [d, paso];
+  } catch (e) { return null; }
+}
+const vacio = (d) => JSON.stringify({ ...d, no_es_urgencia: false, acepta_transferencia: false }) === JSON.stringify(VACIA);
+export const guardarBorrador = (uid, d, paso) => {
+  try {
+    if (paso === 1 && vacio(d)) sessionStorage.removeItem(claveBorrador(uid)); // nada que guardar todavía
+    else sessionStorage.setItem(claveBorrador(uid), JSON.stringify({ d, paso, guardado: Date.now() }));
+  } catch (e) { /* sin almacenamiento */ }
+};
+export const borrarBorrador = (uid) => { try { sessionStorage.removeItem(claveBorrador(uid)); } catch (e) { /* nada */ } };
+
+function desdeBorrador(uid) {
   const b = borrador; borrador = null;
-  const base = { servicio: 'consulta', mascota: '', especie: 'perro', sexo: '', edad: '', edadUnidad: 'anios', motivo: '', alcaldia: '', colonia: '', calle_numero: '', cp: '', referencias: '', inicia_at: null, medicos: [], no_es_urgencia: false, acepta_transferencia: false };
-  if (!b) return [base, 1];
+  if (!b) {
+    const g = leerGuardado(uid);
+    return g ? [g[0], g[1], true] : [VACIA, 1, false];
+  }
+  const base = VACIA;
   const m = b.edad_meses;
   const enAnios = m != null && m >= 12 && m % 12 === 0;
   const d = { ...base, servicio: b.servicio, mascota: b.mascota || '', especie: b.especie || 'perro', sexo: b.sexo || '',
@@ -22,7 +52,7 @@ function desdeBorrador() {
     alcaldia: b.alcaldia || '', colonia: b.colonia || '', calle_numero: b.calle_numero || '', cp: b.cp || '', referencias: b.referencias || '' };
   // Con los datos completos se va directo a elegir horario; si falta algo, desde el principio
   const completo = d.sexo && d.edad !== '' && d.alcaldia && d.colonia && d.calle_numero && /^\d{5}$/.test(d.cp) && (d.servicio !== 'consulta' || d.motivo.length >= 10);
-  return [d, completo ? 3 : 1];
+  return [d, completo ? 3 : 1, false];
 }
 
 // "Para continuar falta: …" bajo un botón deshabilitado
@@ -32,9 +62,13 @@ const Falta = ({ que }) => (que.length ? html`<p class="small falta-aviso" role=
 export function Solicitar({ perfil }) {
   const toast = useToast();
   const P = perfil.parametros;
-  const [inicial] = useState(desdeBorrador);
+  const [inicial] = useState(() => desdeBorrador(perfil.id));
   const [paso, setPaso] = useState(inicial[1]);
   const [d, setD] = useState(inicial[0]);
+  const [recuperado, setRecuperado] = useState(inicial[2]);
+  // Se guarda el borrador conforme avanza (y el paso donde va)
+  useEffect(() => { guardarBorrador(perfil.id, d, paso); }, [d, paso]);
+  const empezarDeNuevo = () => { borrarBorrador(perfil.id); setD(VACIA); setPaso(1); setRecuperado(false); setBloques(null); setMedicos(null); setDia(null); };
   const [bloques, setBloques] = useState(null);
   const [dia, setDia] = useState(null);
   const [medicos, setMedicos] = useState(null);
@@ -103,11 +137,12 @@ export function Solicitar({ perfil }) {
   const enviar = async () => {
     const { edad, edadUnidad, ...resto } = d;
     const id = await correr(() => api.crearSolicitud({ ...resto, mascota: d.mascota.trim(), motivo: d.motivo.trim(), edad_meses: edadMeses, no_es_urgencia: 'true', acepta_transferencia: 'true' }));
-    if (id) { toast('Solicitud enviada.', { sparks: true }); ir('consultas'); }
+    if (id) { borrarBorrador(perfil.id); toast('Solicitud enviada.', { sparks: true }); ir('consultas'); }
   };
 
   return html`<div class="page page-narrow">
     <${PageHead} titulo="Solicitar consulta" />
+    ${recuperado && html`<${DS.Notice} tone="info">Recuperamos lo que llevabas de tu solicitud. <button type="button" class="linkish" onClick=${empezarDeNuevo}>Empezar de nuevo</button><//>`}
     <${DS.Steps} current=${paso} total=${5} label=${PASOS[paso - 1]} />
 
     ${paso === 1 && html`<section class="box stack">
